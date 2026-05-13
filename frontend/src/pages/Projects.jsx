@@ -1,0 +1,138 @@
+import { useState, useEffect } from 'react'
+import { projectService } from '../services/api'
+import { useAuth } from '../context/AuthContext'
+
+export default function Projects() {
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editingProject, setEditingProject] = useState(null)
+  const { user } = useAuth()
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    status: 'ACTIVE',
+    startDate: '',
+    endDate: ''
+  })
+
+  useEffect(() => { loadData() }, [])
+
+  const loadData = async () => {
+    try {
+      const res = await projectService.getAll()
+      setProjects(res.data)
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...formData,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null
+      }
+      if (editingProject) {
+        await projectService.update(editingProject.id, data)
+      } else {
+        await projectService.create(data)
+      }
+      setShowModal(false)
+      setEditingProject(null)
+      resetForm()
+      loadData()
+    } catch (err) { alert(err.response?.data?.message || 'Failed to save') }
+  }
+
+  const handleEdit = (project) => {
+    setEditingProject(project)
+    setFormData({
+      name: project.name,
+      description: project.description || '',
+      status: project.status || 'ACTIVE',
+      startDate: project.startDate ? project.startDate.split('T')[0] : '',
+      endDate: project.endDate ? project.endDate.split('T')[0] : ''
+    })
+    setShowModal(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (confirm('Delete this project?')) {
+      try {
+        await projectService.delete(id)
+        loadData()
+      } catch (err) { alert('Failed to delete') }
+    }
+  }
+
+  const resetForm = () => setFormData({ name: '', description: '', status: 'ACTIVE', startDate: '', endDate: '' })
+
+  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+
+  if (loading) return <div className="text-center py-8">Loading...</div>
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-800">Projects</h1>
+        {isManager && (
+          <button onClick={() => { resetForm(); setEditingProject(null); setShowModal(true) }} className="btn btn-primary">
+            Add Project
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {projects.map((project) => (
+          <div key={project.id} className="card">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-semibold text-lg">{project.name}</h3>
+              <span className={`badge badge-${project.status === 'ACTIVE' ? 'green' : 'gray'}`}>
+                {project.status}
+              </span>
+            </div>
+            <p className="text-gray-500 text-sm mb-4">{project.description || 'No description'}</p>
+            <div className="text-sm text-gray-500 mb-4">
+              <p>Teams: {project.teamCount || 0}</p>
+              {project.startDate && <p>Started: {new Date(project.startDate).toLocaleDateString()}</p>}
+              {project.endDate && <p>Due: {new Date(project.endDate).toLocaleDateString()}</p>}
+            </div>
+            {isManager && (
+              <div className="flex gap-2">
+                <button onClick={() => handleEdit(project)} className="btn btn-secondary text-sm">Edit</button>
+                <button onClick={() => handleDelete(project.id)} className="btn btn-danger text-sm">Delete</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <h3 className="text-lg font-semibold mb-4">{editingProject ? 'Edit' : 'Create'} Project</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input type="text" placeholder="Project Name" className="input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+              <textarea placeholder="Description" className="input" rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+              <select className="input" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                <option value="ACTIVE">Active</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+              <div className="grid grid-cols-2 gap-4">
+                <input type="date" className="input" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} />
+                <input type="date" className="input" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} />
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" className="btn btn-primary flex-1">{editingProject ? 'Update' : 'Create'}</button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
