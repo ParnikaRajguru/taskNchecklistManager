@@ -23,8 +23,16 @@ public class TaskController {
     private final UserRepository userRepository;
     
     @GetMapping
-    public ResponseEntity<List<TaskDTO>> getAllTasks() {
-        return ResponseEntity.ok(taskService.getAllTasks());
+    public ResponseEntity<List<TaskDTO>> getAllTasks(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
+                user.getRole().name().equals("PROJECT_MANAGER") ||
+                user.getRole().name().equals("MANAGER");
+        if (isManager) {
+            return ResponseEntity.ok(taskService.getAllTasks());
+        }
+        return ResponseEntity.ok(taskService.getAccessibleTasks(user));
     }
     
     @GetMapping("/{id}")
@@ -40,6 +48,11 @@ public class TaskController {
     @GetMapping("/by-team/{teamId}")
     public ResponseEntity<List<TaskDTO>> getTasksByTeam(@PathVariable Long teamId) {
         return ResponseEntity.ok(taskService.getTasksByTeam(teamId));
+    }
+
+    @GetMapping("/by-shift/{shiftId}")
+    public ResponseEntity<List<TaskDTO>> getTasksByShift(@PathVariable Long shiftId) {
+        return ResponseEntity.ok(taskService.getTasksByShift(shiftId));
     }
     
     @GetMapping("/by-user/{userId}")
@@ -62,6 +75,7 @@ public class TaskController {
     }
     
     @GetMapping("/overdue")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
     public ResponseEntity<List<TaskDTO>> getOverdueTasks() {
         return ResponseEntity.ok(taskService.getOverdueTasks());
     }

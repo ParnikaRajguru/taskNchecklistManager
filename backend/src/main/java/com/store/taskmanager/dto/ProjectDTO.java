@@ -12,5 +12,9 @@ public class ProjectDTO {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private Integer teamCount;
+    private Integer taskCount;
+    private Integer shiftCount;
+    private Integer checklistCount;
+    private Integer handoverCount;
     private LocalDateTime createdAt;
 }

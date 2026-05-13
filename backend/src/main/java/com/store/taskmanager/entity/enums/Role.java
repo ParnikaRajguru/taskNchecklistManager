@@ -5,6 +5,5 @@ public enum Role {
     PROJECT_MANAGER,
     MANAGER,
     TEAM_LEAD,
-    DEVELOPER,
-    TESTER
+    STAFF
 }

@@ -17,12 +17,15 @@ public class TaskDTO {
     private String projectName;
     private Long teamId;
     private String teamName;
+    private Long shiftId;
+    private String shiftName;
     private Long assignedToId;
     private String assignedToName;
     private Long createdById;
     private String createdByName;
     private LocalDateTime dueDate;
     private List<NoteDTO> notes;
+    private Integer checklistCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -12,13 +12,22 @@ public class HandoverDTO {
     private String pendingWork;
     private String blockers;
     private String nextShiftInstructions;
+    private Long projectId;
+    private String projectName;
     private Long fromShiftId;
     private String fromShiftName;
     private Long toShiftId;
     private String toShiftName;
+    private Long assignedTeamId;
+    private String assignedTeamName;
+    private Long receivingTeamId;
+    private String receivingTeamName;
+    private String priority;
     private Long createdById;
     private String createdByName;
     private boolean resolved;
+    private boolean acknowledged;
+    private LocalDateTime acknowledgedAt;
     private List<NoteDTO> notes;
     private LocalDateTime createdAt;
 }

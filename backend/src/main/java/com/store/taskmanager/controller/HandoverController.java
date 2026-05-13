@@ -17,30 +17,40 @@ import java.util.List;
 @RequestMapping("/api/handovers")
 @RequiredArgsConstructor
 public class HandoverController {
-    
+
     private final HandoverService handoverService;
     private final UserRepository userRepository;
-    
+
     @GetMapping
     public ResponseEntity<List<HandoverDTO>> getAllHandovers() {
         return ResponseEntity.ok(handoverService.getAllHandovers());
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<HandoverDTO> getHandoverById(@PathVariable Long id) {
         return ResponseEntity.ok(handoverService.getHandoverById(id));
     }
-    
+
     @GetMapping("/by-shift/{shiftId}")
     public ResponseEntity<List<HandoverDTO>> getHandoversByShift(@PathVariable Long shiftId) {
         return ResponseEntity.ok(handoverService.getHandoversByShift(shiftId));
     }
-    
+
     @GetMapping("/unresolved/{shiftId}")
     public ResponseEntity<List<HandoverDTO>> getUnresolvedHandovers(@PathVariable Long shiftId) {
         return ResponseEntity.ok(handoverService.getUnresolvedHandovers(shiftId));
     }
-    
+
+    @GetMapping("/by-team/{teamId}")
+    public ResponseEntity<List<HandoverDTO>> getHandoversByAssignedTeam(@PathVariable Long teamId) {
+        return ResponseEntity.ok(handoverService.getHandoversByAssignedTeam(teamId));
+    }
+
+    @GetMapping("/unacknowledged/{teamId}")
+    public ResponseEntity<List<HandoverDTO>> getUnacknowledgedHandovers(@PathVariable Long teamId) {
+        return ResponseEntity.ok(handoverService.getUnacknowledgedHandovers(teamId));
+    }
+
     @PostMapping
     public ResponseEntity<HandoverDTO> createHandover(
             @Valid @RequestBody CreateHandoverRequest request,
@@ -49,7 +59,7 @@ public class HandoverController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(handoverService.createHandover(request, currentUser));
     }
-    
+
     @PutMapping("/{id}/resolve")
     public ResponseEntity<HandoverDTO> resolveHandover(
             @PathVariable Long id,
@@ -58,7 +68,16 @@ public class HandoverController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(handoverService.resolveHandover(id, currentUser));
     }
-    
+
+    @PutMapping("/{id}/acknowledge")
+    public ResponseEntity<HandoverDTO> acknowledgeHandover(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(handoverService.acknowledgeHandover(id, currentUser));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteHandover(
             @PathVariable Long id,

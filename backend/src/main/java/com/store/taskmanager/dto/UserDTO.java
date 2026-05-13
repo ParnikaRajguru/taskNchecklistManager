@@ -1,6 +1,7 @@
 package com.store.taskmanager.dto;
 
 import com.store.taskmanager.entity.enums.Role;
+import com.store.taskmanager.entity.enums.UserStatus;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -13,11 +14,11 @@ public class UserDTO {
     private String email;
     private String phone;
     private Role role;
+    private UserStatus status;
     private Long teamId;
     private String teamName;
     private Long shiftId;
     private String shiftName;
-    private boolean active;
     private boolean firstLogin;
     private LocalDateTime createdAt;
 }

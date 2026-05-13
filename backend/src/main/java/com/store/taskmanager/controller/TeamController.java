@@ -18,25 +18,47 @@ import java.util.List;
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
 public class TeamController {
-    
+
     private final TeamService teamService;
     private final UserRepository userRepository;
-    
+
     @GetMapping
-    public ResponseEntity<List<TeamDTO>> getAllTeams() {
-        return ResponseEntity.ok(teamService.getAllTeams());
+    public ResponseEntity<List<TeamDTO>> getAllTeams(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
+                user.getRole().name().equals("PROJECT_MANAGER") ||
+                user.getRole().name().equals("MANAGER");
+        if (isManager) {
+            return ResponseEntity.ok(teamService.getAllTeams());
+        }
+        List<TeamDTO> teams = new java.util.ArrayList<>();
+        if (user.getTeam() != null) {
+            teams.add(teamService.getTeamById(user.getTeam().getId()));
+        }
+        return ResponseEntity.ok(teams);
     }
-    
+
+    @GetMapping("/my-team")
+    public ResponseEntity<TeamDTO> getMyTeam(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user.getTeam() == null) {
+            return ResponseEntity.ok(null);
+        }
+        return ResponseEntity.ok(teamService.getTeamById(user.getTeam().getId()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TeamDTO> getTeamById(@PathVariable Long id) {
         return ResponseEntity.ok(teamService.getTeamById(id));
     }
-    
+
     @GetMapping("/by-project/{projectId}")
     public ResponseEntity<List<TeamDTO>> getTeamsByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(teamService.getTeamsByProject(projectId));
     }
-    
+
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
     public ResponseEntity<TeamDTO> createTeam(
@@ -46,7 +68,7 @@ public class TeamController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(teamService.createTeam(request, currentUser));
     }
-    
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
     public ResponseEntity<TeamDTO> updateTeam(
@@ -57,7 +79,7 @@ public class TeamController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(teamService.updateTeam(id, request, currentUser));
     }
-    
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER')")
     public ResponseEntity<String> deleteTeam(

@@ -23,8 +23,19 @@ public class ProjectController {
     private final UserRepository userRepository;
     
     @GetMapping
-    public ResponseEntity<List<ProjectDTO>> getAllProjects() {
-        return ResponseEntity.ok(projectService.getAllProjects());
+    public ResponseEntity<List<ProjectDTO>> getAllProjects(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
+                user.getRole().name().equals("PROJECT_MANAGER") ||
+                user.getRole().name().equals("MANAGER");
+        if (isManager) {
+            return ResponseEntity.ok(projectService.getAllProjects());
+        }
+        if (user.getTeam() != null && user.getTeam().getProject() != null) {
+            return ResponseEntity.ok(java.util.List.of(projectService.getProjectById(user.getTeam().getProject().getId())));
+        }
+        return ResponseEntity.ok(java.util.List.of());
     }
     
     @GetMapping("/{id}")
@@ -33,6 +44,7 @@ public class ProjectController {
     }
     
     @GetMapping("/by-status/{status}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
     public ResponseEntity<List<ProjectDTO>> getProjectsByStatus(@PathVariable String status) {
         return ResponseEntity.ok(projectService.getProjectsByStatus(status));
     }

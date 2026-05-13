@@ -84,6 +84,11 @@ export default function Projects() {
         )}
       </div>
 
+      {projects.length === 0 ? (
+        <div className="card text-center py-8">
+          <p className="text-gray-500">No projects assigned to you.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {projects.map((project) => (
           <div key={project.id} className="card">
@@ -94,10 +99,28 @@ export default function Projects() {
               </span>
             </div>
             <p className="text-gray-500 text-sm mb-4">{project.description || 'No description'}</p>
-            <div className="text-sm text-gray-500 mb-4">
-              <p>Teams: {project.teamCount || 0}</p>
+            <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+              <div className="bg-blue-50 p-2 rounded text-center">
+                <p className="text-lg font-bold text-blue-600">{project.teamCount || 0}</p>
+                <p className="text-xs text-gray-500">Teams</p>
+              </div>
+              <div className="bg-green-50 p-2 rounded text-center">
+                <p className="text-lg font-bold text-green-600">{project.taskCount || 0}</p>
+                <p className="text-xs text-gray-500">Tasks</p>
+              </div>
+              <div className="bg-yellow-50 p-2 rounded text-center">
+                <p className="text-lg font-bold text-yellow-600">{project.shiftCount || 0}</p>
+                <p className="text-xs text-gray-500">Shifts</p>
+              </div>
+              <div className="bg-purple-50 p-2 rounded text-center">
+                <p className="text-lg font-bold text-purple-600">{project.checklistCount || 0}</p>
+                <p className="text-xs text-gray-500">Checklists</p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500 mb-2">
               {project.startDate && <p>Started: {new Date(project.startDate).toLocaleDateString()}</p>}
               {project.endDate && <p>Due: {new Date(project.endDate).toLocaleDateString()}</p>}
+              <p>Handovers: {project.handoverCount || 0}</p>
             </div>
             {isManager && (
               <div className="flex gap-2">
@@ -108,6 +131,7 @@ export default function Projects() {
           </div>
         ))}
       </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

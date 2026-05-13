@@ -1,13 +1,12 @@
 package com.store.taskmanager.entity;
 
 import com.store.taskmanager.entity.enums.Role;
+import com.store.taskmanager.entity.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -40,6 +39,10 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private Team team;
@@ -47,8 +50,6 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shift_id")
     private Shift shift;
-
-    private boolean active = true;
 
     private boolean firstLogin = true;
 
@@ -69,5 +70,9 @@ public class User {
 
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
     }
 }

@@ -1,20 +1,43 @@
--- Store Task & Checklist Manager - Database Initialization Script
--- Run this script in PostgreSQL to create initial admin user and shifts
-
--- Create database (if not exists)
--- CREATE DATABASE taskmanager;
-
--- Shifts will be created automatically by the application when it starts
--- But you can manually insert initial data here if needed
-
--- Note: The first admin user must be created through the API
--- POST /api/auth/create-user with role SUPER_ADMIN
-
--- Sample shifts (run these after tables are created)
--- INSERT INTO shifts (name, shift_type, start_time, end_time, active, created_at, updated_at) VALUES
--- ('Morning Shift', 'MORNING', '06:00:00', '14:00:00', true, NOW(), NOW()),
--- ('Evening Shift', 'EVENING', '14:00:00', '22:00:00', true, NOW(), NOW()),
--- ('Night Shift', 'NIGHT', '22:00:00', '06:00:00', true, NOW(), NOW());
-
--- After creating user, you can assign shifts
--- UPDATE users SET shift_id = 1 WHERE username = 'admin';
+-- Store Task & Checklist Manager - Database Setup Guide
+-- ============================================
+-- IMPORTANT: The application auto-creates all tables and seed data on startup!
+-- Just start the Spring Boot backend - no manual SQL needed.
+--
+-- Prerequisites:
+--   1. PostgreSQL running on localhost:5432
+--   2. Database 'taskmanager' must exist
+--
+-- To create the database:
+--   CREATE DATABASE taskmanager;
+--
+-- What gets created automatically:
+--   Tables (via Hibernate ddl-auto=update)
+--   Shifts: Morning (6-2), Evening (2-10), Night (10-6)
+--   Users:
+--     admin / admin123 (SUPER_ADMIN)
+--     john.manager / password123 (MANAGER)
+--     sarah.lead / password123 (TEAM_LEAD)
+--     mike.staff / password123 (STAFF)
+--     emily.staff / password123 (STAFF)
+--     alex.staff / password123 (STAFF)
+--     lisa.staff / password123 (STAFF)
+--     david.staff / password123 (STAFF)
+--     jenny.lead / password123 (TEAM_LEAD)
+--   Projects: Store Website Revamp, Inventory Management System, Customer Loyalty Program
+--   Teams: Frontend, Backend, QA, Inventory
+--   Tasks: 8 tasks across projects/teams
+--   Checklists: 4 checklists with 8 items
+--   Handovers: 3 shift handovers
+--
+-- ============================================
+-- Troubleshooting:
+-- ============================================
+-- If you need to reset the database:
+--   1. DROP DATABASE taskmanager;
+--   2. CREATE DATABASE taskmanager;
+--   3. Restart the backend application
+--
+-- If users can't log in, check:
+--   1. User status is 'ACTIVE' (not INACTIVE/SUSPENDED/LOCKED)
+--   2. Password is BCrypt encoded
+--   3. Account is not disabled

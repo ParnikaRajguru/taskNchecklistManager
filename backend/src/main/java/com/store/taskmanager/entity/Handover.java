@@ -1,5 +1,6 @@
 package com.store.taskmanager.entity;
 
+import com.store.taskmanager.entity.enums.HandoverPriority;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,10 +43,29 @@ public class Handover {
     private Shift toShift;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_team_id")
+    private Team assignedTeam;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "receiving_team_id")
+    private Team receivingTeam;
+
+    @Enumerated(EnumType.STRING)
+    private HandoverPriority priority = HandoverPriority.MEDIUM;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
 
     private boolean resolved = false;
+
+    private boolean acknowledged = false;
+
+    private LocalDateTime acknowledgedAt;
 
     @OneToMany(mappedBy = "handover", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Note> notes = new ArrayList<>();

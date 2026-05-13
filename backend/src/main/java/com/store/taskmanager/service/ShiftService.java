@@ -2,9 +2,13 @@ package com.store.taskmanager.service;
 
 import com.store.taskmanager.dto.*;
 import com.store.taskmanager.entity.Shift;
+import com.store.taskmanager.entity.Project;
+import com.store.taskmanager.entity.Team;
 import com.store.taskmanager.entity.User;
 import com.store.taskmanager.exception.ResourceNotFoundException;
 import com.store.taskmanager.repository.ShiftRepository;
+import com.store.taskmanager.repository.ProjectRepository;
+import com.store.taskmanager.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +21,8 @@ import java.util.stream.Collectors;
 public class ShiftService {
     
     private final ShiftRepository shiftRepository;
+    private final ProjectRepository projectRepository;
+    private final TeamRepository teamRepository;
     private final AuditLogService auditLogService;
     
     public List<ShiftDTO> getAllShifts() {
@@ -45,6 +51,18 @@ public class ShiftService {
         shift.setStartTime(request.getStartTime());
         shift.setEndTime(request.getEndTime());
         shift.setActive(request.getActive() != null ? request.getActive() : true);
+
+        if (request.getProjectId() != null) {
+            Project project = projectRepository.findById(request.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+            shift.setProject(project);
+        }
+
+        if (request.getTeamId() != null) {
+            Team team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+            shift.setTeam(team);
+        }
         
         shiftRepository.save(shift);
         
@@ -63,6 +81,18 @@ public class ShiftService {
         if (request.getStartTime() != null) shift.setStartTime(request.getStartTime());
         if (request.getEndTime() != null) shift.setEndTime(request.getEndTime());
         if (request.getActive() != null) shift.setActive(request.getActive());
+
+        if (request.getProjectId() != null) {
+            Project project = projectRepository.findById(request.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+            shift.setProject(project);
+        }
+
+        if (request.getTeamId() != null) {
+            Team team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+            shift.setTeam(team);
+        }
         
         shiftRepository.save(shift);
         
@@ -90,9 +120,27 @@ public class ShiftService {
         dto.setEndTime(shift.getEndTime());
         dto.setActive(shift.isActive());
         dto.setCreatedAt(shift.getCreatedAt());
+
+        if (shift.getProject() != null) {
+            dto.setProjectId(shift.getProject().getId());
+            dto.setProjectName(shift.getProject().getName());
+        }
+
+        if (shift.getTeam() != null) {
+            dto.setTeamId(shift.getTeam().getId());
+            dto.setTeamName(shift.getTeam().getName());
+        }
         
         if (shift.getUsers() != null) {
             dto.setUserCount(shift.getUsers().size());
+        }
+
+        if (shift.getChecklists() != null) {
+            dto.setChecklistCount(shift.getChecklists().size());
+        }
+
+        if (shift.getTasks() != null) {
+            dto.setTaskCount(shift.getTasks().size());
         }
         
         return dto;

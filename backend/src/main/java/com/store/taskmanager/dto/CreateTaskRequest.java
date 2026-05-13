@@ -16,6 +16,7 @@ public class CreateTaskRequest {
     private TaskPriority priority;
     private Long projectId;
     private Long teamId;
+    private Long shiftId;
     private Long assignedToId;
     private LocalDateTime dueDate;
 }

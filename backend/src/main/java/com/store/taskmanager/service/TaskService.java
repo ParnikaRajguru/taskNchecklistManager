@@ -22,6 +22,7 @@ public class TaskService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final NoteRepository noteRepository;
+    private final ShiftRepository shiftRepository;
     private final AuditLogService auditLogService;
     
     public List<TaskDTO> getAllTasks() {
@@ -47,6 +48,12 @@ public class TaskService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
+
+    public List<TaskDTO> getTasksByShift(Long shiftId) {
+        return taskRepository.findByShiftId(shiftId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
     
     public List<TaskDTO> getTasksByUser(Long userId) {
         return taskRepository.findByAssignedToId(userId).stream()
@@ -60,6 +67,23 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
     
+    public List<TaskDTO> getAccessibleTasks(User user) {
+        if (user.getTeam() == null) {
+            return getTasksByUser(user.getId());
+        }
+        List<Task> teamTasks = taskRepository.findByTeamId(user.getTeam().getId());
+        List<Task> assignedTasks = taskRepository.findByAssignedToId(user.getId());
+        List<Task> combined = new java.util.ArrayList<>(teamTasks);
+        for (Task t : assignedTasks) {
+            if (combined.stream().noneMatch(ct -> ct.getId().equals(t.getId()))) {
+                combined.add(t);
+            }
+        }
+        return combined.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<TaskDTO> getOverdueTasks() {
         return taskRepository.findOverdueTasks(LocalDateTime.now()).stream()
                 .map(this::mapToDTO)
@@ -92,6 +116,12 @@ public class TaskService {
             User assignedTo = userRepository.findById(request.getAssignedToId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             task.setAssignedTo(assignedTo);
+        }
+
+        if (request.getShiftId() != null) {
+            Shift shift = shiftRepository.findById(request.getShiftId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+            task.setShift(shift);
         }
         
         taskRepository.save(task);
@@ -130,6 +160,12 @@ public class TaskService {
             User assignedTo = userRepository.findById(request.getAssignedToId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             task.setAssignedTo(assignedTo);
+        }
+
+        if (request.getShiftId() != null) {
+            Shift shift = shiftRepository.findById(request.getShiftId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+            task.setShift(shift);
         }
         
         taskRepository.save(task);
@@ -173,6 +209,11 @@ public class TaskService {
             dto.setTeamId(task.getTeam().getId());
             dto.setTeamName(task.getTeam().getName());
         }
+
+        if (task.getShift() != null) {
+            dto.setShiftId(task.getShift().getId());
+            dto.setShiftName(task.getShift().getName());
+        }
         
         if (task.getAssignedTo() != null) {
             dto.setAssignedToId(task.getAssignedTo().getId());
@@ -188,6 +229,10 @@ public class TaskService {
             dto.setNotes(task.getNotes().stream()
                     .map(this::mapNoteToDTO)
                     .collect(Collectors.toList()));
+        }
+
+        if (task.getChecklistItems() != null) {
+            dto.setChecklistCount(task.getChecklistItems().size());
         }
         
         return dto;

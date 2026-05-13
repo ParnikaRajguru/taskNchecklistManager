@@ -14,4 +14,6 @@ public class CreateShiftRequest {
     private LocalTime startTime;
     private LocalTime endTime;
     private Boolean active;
+    private Long projectId;
+    private Long teamId;
 }

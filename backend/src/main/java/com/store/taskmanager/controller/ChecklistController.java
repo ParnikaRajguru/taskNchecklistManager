@@ -41,6 +41,11 @@ public class ChecklistController {
     public ResponseEntity<List<ChecklistDTO>> getChecklistsByTeam(@PathVariable Long teamId) {
         return ResponseEntity.ok(checklistService.getChecklistsByTeam(teamId));
     }
+
+    @GetMapping("/by-task/{taskId}")
+    public ResponseEntity<List<ChecklistDTO>> getChecklistsByTask(@PathVariable Long taskId) {
+        return ResponseEntity.ok(checklistService.getChecklistsByTask(taskId));
+    }
     
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER', 'TEAM_LEAD')")

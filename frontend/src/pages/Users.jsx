@@ -10,14 +10,17 @@ export default function Users() {
   const [showModal, setShowModal] = useState(false)
   const [showUserModal, setShowUserModal] = useState(false)
   const { user: currentUser } = useAuth()
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', role: 'DEVELOPER', teamId: '', shiftId: '' })
-  const [createUserData, setCreateUserData] = useState({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'DEVELOPER', teamId: '', shiftId: '' })
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
+  const [createUserData, setCreateUserData] = useState({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
 
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     try {
-      const [usersRes, teamsRes, shiftsRes] = await Promise.all([userService.getAll(), teamService.getAll(), shiftService.getAll()])
+      const teamsPromise = teamService.getAll()
+      const shiftsPromise = shiftService.getAll()
+      const usersPromise = userService.getAll().catch(() => ({ data: [] }))
+      const [usersRes, teamsRes, shiftsRes] = await Promise.all([usersPromise, teamsPromise, shiftsPromise])
       setUsers(usersRes.data)
       setTeams(teamsRes.data)
       setShifts(shiftsRes.data)
@@ -30,7 +33,7 @@ export default function Users() {
     try {
       await authService.createUser(createUserData)
       setShowUserModal(false)
-      setCreateUserData({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'DEVELOPER', teamId: '', shiftId: '' })
+      setCreateUserData({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
       loadData()
     } catch (err) { alert(err.response?.data?.message || 'Failed to create user') }
   }
@@ -56,10 +59,12 @@ export default function Users() {
     } catch (err) { alert(err.response?.data?.message || 'Failed to update') }
   }
 
-  const handleDelete = async (id) => {
-    if (confirm('Deactivate this user?')) {
-      try { await userService.delete(id); loadData() }
-      catch (err) { alert('Failed to deactivate') }
+  const handleToggleStatus = async (user) => {
+    const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+    const action = newStatus === 'INACTIVE' ? 'deactivate' : 'activate'
+    if (confirm(`${action} this user?`)) {
+      try { await userService.setStatus(user.id, newStatus); loadData() }
+      catch (err) { alert('Failed to ' + action) }
     }
   }
 
@@ -70,9 +75,30 @@ export default function Users() {
     }
   }
 
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(currentUser?.role)
+  const getStatusBadge = (status) => {
+    const colors = {
+      ACTIVE: 'badge-green',
+      INACTIVE: 'badge-red',
+      SUSPENDED: 'badge-yellow',
+      LOCKED: 'badge-purple'
+    }
+    return colors[status] || 'badge-gray'
+  }
+
+  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER', 'TEAM_LEAD'].includes(currentUser?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
+
+  if (!isManager) {
+    return (
+      <div className="card text-center py-12">
+        <div className="text-6xl mb-4">🔒</div>
+        <h2 className="text-xl font-semibold text-gray-700 mb-2">Access Restricted</h2>
+        <p className="text-gray-500">You do not have permission to access user management.</p>
+        <p className="text-gray-400 text-sm mt-2">Contact your manager or administrator for access.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -81,42 +107,50 @@ export default function Users() {
         {isManager && <button onClick={() => setShowUserModal(true)} className="btn btn-primary">Add User</button>}
       </div>
 
-      <div className="card overflow-hidden">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Team</th>
-              <th>Shift</th>
-              <th>Status</th>
-              {isManager && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td className="font-medium">{user.firstName} {user.lastName}</td>
-                <td>{user.username}</td>
-                <td>{user.email}</td>
-                <td><span className="badge badge-blue">{user.role}</span></td>
-                <td>{user.teamName || '-'}</td>
-                <td>{user.shiftName || '-'}</td>
-                <td><span className={`badge ${user.active ? 'badge-green' : 'badge-red'}`}>{user.active ? 'Active' : 'Inactive'}</span></td>
-                {isManager && (
-                  <td>
-                    <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
-                    <button onClick={() => handleResetPassword(user.id)} className="text-yellow-600 hover:text-yellow-800 mr-2">Reset</button>
-                    <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-800">Deactivate</button>
-                  </td>
-                )}
+      {users.length === 0 ? (
+        <div className="card text-center py-8">
+          <p className="text-gray-500">No users found.</p>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Team</th>
+                <th>Shift</th>
+                <th>Status</th>
+                {isManager && <th>Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td className="font-medium">{user.firstName} {user.lastName}</td>
+                  <td>{user.username}</td>
+                  <td>{user.email}</td>
+                  <td><span className="badge badge-blue">{user.role}</span></td>
+                  <td>{user.teamName || '-'}</td>
+                  <td>{user.shiftName || '-'}</td>
+                  <td><span className={`badge ${getStatusBadge(user.status)}`}>{user.status}</span></td>
+                  {isManager && (
+                    <td>
+                      <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
+                      <button onClick={() => handleToggleStatus(user)} className={`${user.status === 'ACTIVE' ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} mr-2`}>
+                        {user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button onClick={() => handleResetPassword(user.id)} className="text-yellow-600 hover:text-yellow-800">Reset</button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showUserModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -134,8 +168,7 @@ export default function Users() {
               <input type="email" placeholder="Email" className="input" value={createUserData.email} onChange={(e) => setCreateUserData({ ...createUserData, email: e.target.value })} required />
               <input type="text" placeholder="Phone" className="input" value={createUserData.phone} onChange={(e) => setCreateUserData({ ...createUserData, phone: e.target.value })} />
               <select className="input" value={createUserData.role} onChange={(e) => setCreateUserData({ ...createUserData, role: e.target.value })}>
-                <option value="DEVELOPER">Developer</option>
-                <option value="TESTER">Tester</option>
+                <option value="STAFF">Staff</option>
                 <option value="TEAM_LEAD">Team Lead</option>
                 <option value="MANAGER">Manager</option>
                 <option value="PROJECT_MANAGER">Project Manager</option>
@@ -153,7 +186,7 @@ export default function Users() {
               </div>
               <div className="flex gap-2">
                 <button type="submit" className="btn btn-primary flex-1">Create</button>
-                <button type="button" onClick={() => setShowUserModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
               </div>
             </form>
           </div>
@@ -172,8 +205,7 @@ export default function Users() {
               <input type="email" placeholder="Email" className="input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
               <input type="text" placeholder="Phone" className="input" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
               <select className="input" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
-                <option value="DEVELOPER">Developer</option>
-                <option value="TESTER">Tester</option>
+                <option value="STAFF">Staff</option>
                 <option value="TEAM_LEAD">Team Lead</option>
                 <option value="MANAGER">Manager</option>
                 <option value="PROJECT_MANAGER">Project Manager</option>

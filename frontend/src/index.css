@@ -84,3 +84,11 @@ body {
 .badge-gray {
   @apply bg-gray-100 text-gray-800;
 }
+
+.badge-purple {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.badge-orange {
+  @apply bg-orange-100 text-orange-800;
+}

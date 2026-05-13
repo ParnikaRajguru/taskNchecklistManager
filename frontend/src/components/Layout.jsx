@@ -12,18 +12,20 @@ export default function Layout() {
     navigate('/login')
   }
 
-  const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/tasks', label: 'Tasks', icon: '✅' },
-    { path: '/projects', label: 'Projects', icon: '📁' },
-    { path: '/teams', label: 'Teams', icon: '👥' },
-    { path: '/users', label: 'Users', icon: '👤' },
-    { path: '/shifts', label: 'Shifts', icon: '⏰' },
-    { path: '/checklists', label: 'Checklists', icon: '📋' },
-    { path: '/handovers', label: 'Handovers', icon: '🔄' }
-  ]
-
   const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+  const isTeamLead = user?.role === 'TEAM_LEAD'
+  const isStaff = user?.role === 'STAFF'
+
+  const navItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: '📊', show: true },
+    { path: '/tasks', label: 'Tasks', icon: '✅', show: true },
+    { path: '/projects', label: 'Projects', icon: '📁', show: !isStaff || true },
+    { path: '/teams', label: 'Teams', icon: '👥', show: true },
+    { path: '/users', label: 'Users', icon: '👤', show: isManager || isTeamLead },
+    { path: '/shifts', label: 'Shifts', icon: '⏰', show: !isStaff },
+    { path: '/checklists', label: 'Checklists', icon: '📋', show: true },
+    { path: '/handovers', label: 'Handovers', icon: '🔄', show: true }
+  ]
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -34,7 +36,7 @@ export default function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
+          {navItems.filter(item => item.show).map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -76,14 +78,24 @@ export default function Layout() {
           <h2 className="text-lg font-semibold text-gray-800">
             Welcome, {user?.firstName}
           </h2>
-          {user?.firstLogin && (
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="btn btn-primary text-sm"
-            >
-              Change Password
-            </button>
-          )}
+          <div className="flex gap-2">
+            {user?.firstLogin && (
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="btn btn-primary text-sm"
+              >
+                Change Password
+              </button>
+            )}
+            {isStaff && (
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="btn btn-secondary text-sm"
+              >
+                Change Password
+              </button>
+            )}
+          </div>
         </header>
         
         <div className="p-6">

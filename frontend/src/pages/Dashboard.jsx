@@ -31,8 +31,13 @@ export default function Dashboard() {
     { label: 'Pending', value: data?.pendingTasks || 0, color: 'yellow' },
     { label: 'Completed', value: data?.completedTasks || 0, color: 'green' },
     { label: 'Overdue', value: data?.overdueTasks || 0, color: 'red' },
-    { label: 'Blocked', value: data?.blockedTasks || 0, color: 'purple' }
+    { label: 'Blocked', value: data?.blockedTasks || 0, color: 'purple' },
+    { label: 'Completed Today', value: data?.completedToday || 0, color: 'teal' },
+    { label: 'Pending Checklist', value: data?.pendingChecklistItemsCount || 0, color: 'orange' },
+    { label: 'Delayed Checklists', value: data?.delayedChecklists || 0, color: 'pink' }
   ]
+
+  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
 
   return (
     <div className="space-y-6">
@@ -40,7 +45,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <div key={index} className="card">
             <p className="text-sm text-gray-500">{stat.label}</p>
@@ -116,6 +121,19 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {isManager && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Pending Approvals</h3>
+            <p className="text-3xl font-bold text-blue-600">{data?.pendingApprovals || 0}</p>
+          </div>
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">Missed Handovers</h3>
+            <p className="text-3xl font-bold text-red-600">{data?.missedHandovers || 0}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

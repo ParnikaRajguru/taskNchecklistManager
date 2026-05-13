@@ -19,6 +19,7 @@ public class ChecklistService {
     
     private final ChecklistRepository checklistRepository;
     private final ChecklistItemRepository checklistItemRepository;
+    private final ProjectRepository projectRepository;
     private final ShiftRepository shiftRepository;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
@@ -48,6 +49,12 @@ public class ChecklistService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
+
+    public List<ChecklistDTO> getChecklistsByTask(Long taskId) {
+        return checklistRepository.findByTaskId(taskId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
     
     @Transactional
     public ChecklistDTO createChecklist(CreateChecklistRequest request, User currentUser) {
@@ -56,6 +63,12 @@ public class ChecklistService {
         checklist.setDescription(request.getDescription());
         checklist.setCreatedBy(currentUser);
         
+        if (request.getProjectId() != null) {
+            Project project = projectRepository.findById(request.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+            checklist.setProject(project);
+        }
+
         if (request.getShiftId() != null) {
             Shift shift = shiftRepository.findById(request.getShiftId())
                     .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
@@ -66,6 +79,12 @@ public class ChecklistService {
             Team team = teamRepository.findById(request.getTeamId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
             checklist.setTeam(team);
+        }
+
+        if (request.getTaskId() != null) {
+            Task task = taskRepository.findById(request.getTaskId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+            checklist.setTask(task);
         }
         
         if (request.getItems() != null && !request.getItems().isEmpty()) {
@@ -149,6 +168,11 @@ public class ChecklistService {
         dto.setDescription(checklist.getDescription());
         dto.setCreatedAt(checklist.getCreatedAt());
         
+        if (checklist.getProject() != null) {
+            dto.setProjectId(checklist.getProject().getId());
+            dto.setProjectName(checklist.getProject().getName());
+        }
+
         if (checklist.getShift() != null) {
             dto.setShiftId(checklist.getShift().getId());
             dto.setShiftName(checklist.getShift().getName());
@@ -158,16 +182,25 @@ public class ChecklistService {
             dto.setTeamId(checklist.getTeam().getId());
             dto.setTeamName(checklist.getTeam().getName());
         }
+
+        if (checklist.getTask() != null) {
+            dto.setTaskId(checklist.getTask().getId());
+            dto.setTaskTitle(checklist.getTask().getTitle());
+        }
         
         if (checklist.getCreatedBy() != null) {
             dto.setCreatedById(checklist.getCreatedBy().getId());
             dto.setCreatedByName(checklist.getCreatedBy().getFullName());
         }
         
-        if (checklist.getItems() != null) {
+        if (checklist.getItems() != null && !checklist.getItems().isEmpty()) {
             dto.setItems(checklist.getItems().stream()
                     .map(this::mapItemToDTO)
                     .collect(Collectors.toList()));
+            long completed = checklist.getItems().stream().filter(ChecklistItem::isCompleted).count();
+            dto.setProgressPercentage((int) (completed * 100 / checklist.getItems().size()));
+        } else {
+            dto.setProgressPercentage(0);
         }
         
         return dto;

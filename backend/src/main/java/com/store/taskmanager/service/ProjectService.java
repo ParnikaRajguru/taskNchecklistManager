@@ -94,6 +94,18 @@ public class ProjectService {
         if (project.getTeams() != null) {
             dto.setTeamCount(project.getTeams().size());
         }
+        if (project.getTasks() != null) {
+            dto.setTaskCount(project.getTasks().size());
+        }
+        if (project.getShifts() != null) {
+            dto.setShiftCount(project.getShifts().size());
+        }
+        if (project.getChecklists() != null) {
+            dto.setChecklistCount(project.getChecklists().size());
+        }
+        if (project.getHandovers() != null) {
+            dto.setHandoverCount(project.getHandovers().size());
+        }
         
         return dto;
     }

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { taskService, projectService, teamService, userService } from '../services/api'
+import { taskService, projectService, teamService, userService, shiftService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([])
   const [projects, setProjects] = useState([])
   const [teams, setTeams] = useState([])
+  const [shifts, setShifts] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -19,6 +20,7 @@ export default function Tasks() {
     priority: 'MEDIUM',
     projectId: '',
     teamId: '',
+    shiftId: '',
     assignedToId: '',
     dueDate: ''
   })
@@ -29,15 +31,18 @@ export default function Tasks() {
 
   const loadData = async () => {
     try {
-      const [tasksRes, projectsRes, teamsRes, usersRes] = await Promise.all([
-        taskService.getAll(),
-        projectService.getAll(),
-        teamService.getAll(),
-        userService.getAll()
+      const tasksPromise = taskService.getAll()
+      const projectsPromise = projectService.getAll()
+      const teamsPromise = teamService.getAll()
+      const shiftsPromise = shiftService.getAll()
+      const usersPromise = userService.getAll().catch(() => ({ data: [] }))
+      const [tasksRes, projectsRes, teamsRes, shiftsRes, usersRes] = await Promise.all([
+        tasksPromise, projectsPromise, teamsPromise, shiftsPromise, usersPromise
       ])
       setTasks(tasksRes.data)
       setProjects(projectsRes.data)
       setTeams(teamsRes.data)
+      setShifts(shiftsRes.data)
       setUsers(usersRes.data)
     } catch (err) {
       console.error(err)
@@ -81,6 +86,7 @@ export default function Tasks() {
       priority: task.priority,
       projectId: task.projectId || '',
       teamId: task.teamId || '',
+      shiftId: task.shiftId || '',
       assignedToId: task.assignedToId || '',
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : ''
     })
@@ -106,6 +112,7 @@ export default function Tasks() {
       priority: 'MEDIUM',
       projectId: '',
       teamId: '',
+      shiftId: '',
       assignedToId: '',
       dueDate: ''
     })
@@ -138,9 +145,11 @@ export default function Tasks() {
               <th>Title</th>
               <th>Project</th>
               <th>Team</th>
+              <th>Shift</th>
               <th>Assigned To</th>
               <th>Status</th>
               <th>Priority</th>
+              <th>Checklists</th>
               <th>Due Date</th>
               {isManager && <th>Actions</th>}
             </tr>
@@ -151,6 +160,7 @@ export default function Tasks() {
                 <td className="font-medium">{task.title}</td>
                 <td>{task.projectName || '-'}</td>
                 <td>{task.teamName || '-'}</td>
+                <td>{task.shiftName || '-'}</td>
                 <td>{task.assignedToName || '-'}</td>
                 <td>
                   <span className={`badge badge-${getStatusColor(task.status)}`}>
@@ -162,6 +172,7 @@ export default function Tasks() {
                     {task.priority}
                   </span>
                 </td>
+                <td>{task.checklistCount || 0}</td>
                 <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
                 {isManager && (
                   <td>
@@ -255,6 +266,16 @@ export default function Tasks() {
               <div className="grid grid-cols-2 gap-4">
                 <select
                   className="input"
+                  value={formData.shiftId}
+                  onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
+                >
+                  <option value="">Select Shift</option>
+                  {shifts.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <select
+                  className="input"
                   value={formData.assignedToId}
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
                 >
@@ -263,6 +284,8 @@ export default function Tasks() {
                     <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
                   ))}
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <input
                   type="date"
                   className="input"

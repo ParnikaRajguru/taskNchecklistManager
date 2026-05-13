@@ -10,7 +10,9 @@ public class CreateChecklistRequest {
     private String title;
     
     private String description;
+    private Long projectId;
     private Long shiftId;
     private Long teamId;
+    private Long taskId;
     private List<CreateChecklistItemRequest> items;
 }
