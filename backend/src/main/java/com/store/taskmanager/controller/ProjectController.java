@@ -18,16 +18,15 @@ import java.util.List;
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
 public class ProjectController {
-    
+
     private final ProjectService projectService;
     private final UserRepository userRepository;
-    
+
     @GetMapping
     public ResponseEntity<List<ProjectDTO>> getAllProjects(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                user.getRole().name().equals("PROJECT_MANAGER") ||
                 user.getRole().name().equals("MANAGER");
         if (isManager) {
             return ResponseEntity.ok(projectService.getAllProjects());
@@ -37,20 +36,20 @@ public class ProjectController {
         }
         return ResponseEntity.ok(java.util.List.of());
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<ProjectDTO> getProjectById(@PathVariable Long id) {
         return ResponseEntity.ok(projectService.getProjectById(id));
     }
-    
+
     @GetMapping("/by-status/{status}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<List<ProjectDTO>> getProjectsByStatus(@PathVariable String status) {
         return ResponseEntity.ok(projectService.getProjectsByStatus(status));
     }
-    
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ProjectDTO> createProject(
             @Valid @RequestBody CreateProjectRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -58,9 +57,9 @@ public class ProjectController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(projectService.createProject(request, currentUser));
     }
-    
+
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ProjectDTO> updateProject(
             @PathVariable Long id,
             @Valid @RequestBody CreateProjectRequest request,
@@ -69,9 +68,9 @@ public class ProjectController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(projectService.updateProject(id, request, currentUser));
     }
-    
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<String> deleteProject(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

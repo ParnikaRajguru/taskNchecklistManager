@@ -45,6 +45,8 @@ public class TeamService {
 
     @Transactional
     public TeamDTO createTeam(CreateTeamRequest request, User currentUser) {
+        validateTeamAssignment(request);
+
         Team team = new Team();
         team.setName(request.getName());
         team.setDescription(request.getDescription());
@@ -55,17 +57,15 @@ public class TeamService {
             team.setProject(project);
         }
 
-        if (request.getTeamManagerId() != null) {
-            User manager = userRepository.findById(request.getTeamManagerId())
+        if (request.getManagerId() != null) {
+            User manager = userRepository.findById(request.getManagerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
-            validateUserNotInOtherTeam(manager, "Manager");
-            team.setTeamManager(manager);
+            team.setManager(manager);
         }
 
         if (request.getTeamLeadId() != null) {
             User teamLead = userRepository.findById(request.getTeamLeadId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team Lead not found"));
-            validateUserNotInOtherTeam(teamLead, "Team Lead");
             team.setTeamLead(teamLead);
         }
 
@@ -80,6 +80,8 @@ public class TeamService {
 
     @Transactional
     public TeamDTO updateTeam(Long id, CreateTeamRequest request, User currentUser) {
+        validateTeamAssignment(request);
+
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + id));
 
@@ -92,16 +94,20 @@ public class TeamService {
             team.setProject(project);
         }
 
-        if (request.getTeamManagerId() != null) {
-            User manager = userRepository.findById(request.getTeamManagerId())
+        if (request.getManagerId() != null) {
+            User manager = userRepository.findById(request.getManagerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
-            team.setTeamManager(manager);
+            team.setManager(manager);
+        } else {
+            team.setManager(null);
         }
 
         if (request.getTeamLeadId() != null) {
             User teamLead = userRepository.findById(request.getTeamLeadId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team Lead not found"));
             team.setTeamLead(teamLead);
+        } else {
+            team.setTeamLead(null);
         }
 
         teamRepository.save(team);
@@ -113,10 +119,23 @@ public class TeamService {
         return mapToDTO(team);
     }
 
-    private void assignMembers(Team team, List<Long> memberIds) {
-        if (memberIds == null) {
-            return;
+    private void validateTeamAssignment(CreateTeamRequest request) {
+        if (request.getManagerId() != null && request.getTeamLeadId() != null
+                && request.getManagerId().equals(request.getTeamLeadId())) {
+            throw new BadRequestException("Same person cannot be both manager and team lead");
         }
+        if (request.getManagerId() != null && request.getMemberIds() != null
+                && request.getMemberIds().contains(request.getManagerId())) {
+            throw new BadRequestException("Manager should not be added as a team member");
+        }
+        if (request.getTeamLeadId() != null && request.getMemberIds() != null
+                && request.getMemberIds().contains(request.getTeamLeadId())) {
+            throw new BadRequestException("Team Lead should not be added as a team member");
+        }
+    }
+
+    private void assignMembers(Team team, List<Long> memberIds) {
+        if (memberIds == null) return;
 
         for (User existingMember : userRepository.findByTeamId(team.getId())) {
             if (!memberIds.contains(existingMember.getId())) {
@@ -128,17 +147,8 @@ public class TeamService {
         for (Long memberId : memberIds) {
             User member = userRepository.findById(memberId)
                     .orElseThrow(() -> new ResourceNotFoundException("Member not found with id: " + memberId));
-            if (member.equals(team.getTeamManager()) || member.equals(team.getTeamLead())) {
-                throw new BadRequestException("User " + member.getFullName() + " is already assigned as manager or lead");
-            }
             member.setTeam(team);
             userRepository.save(member);
-        }
-    }
-
-    private void validateUserNotInOtherTeam(User user, String role) {
-        if (user.getTeam() != null) {
-            throw new BadRequestException(role + " " + user.getFullName() + " is already assigned to a team");
         }
     }
 
@@ -151,6 +161,9 @@ public class TeamService {
             member.setTeam(null);
             userRepository.save(member);
         }
+
+        team.setManager(null);
+        team.setTeamLead(null);
 
         auditLogService.log("TEAM_DELETED", "Team", id, null, "team deleted: " + team.getName(), currentUser);
 
@@ -169,9 +182,9 @@ public class TeamService {
             dto.setProjectName(team.getProject().getName());
         }
 
-        if (team.getTeamManager() != null) {
-            dto.setTeamManagerId(team.getTeamManager().getId());
-            dto.setTeamManagerName(team.getTeamManager().getFullName());
+        if (team.getManager() != null) {
+            dto.setManagerId(team.getManager().getId());
+            dto.setManagerName(team.getManager().getFullName());
         }
 
         if (team.getTeamLead() != null) {
@@ -188,12 +201,6 @@ public class TeamService {
         }
         if (team.getTasks() != null) {
             dto.setTaskCount(team.getTasks().size());
-        }
-        if (team.getShifts() != null) {
-            dto.setShiftCount(team.getShifts().size());
-        }
-        if (team.getChecklists() != null) {
-            dto.setChecklistCount(team.getChecklists().size());
         }
 
         return dto;

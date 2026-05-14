@@ -4,7 +4,6 @@ import com.store.taskmanager.dto.*;
 import com.store.taskmanager.entity.User;
 import com.store.taskmanager.entity.Team;
 import com.store.taskmanager.entity.Shift;
-import com.store.taskmanager.entity.enums.UserStatus;
 import com.store.taskmanager.exception.BadRequestException;
 import com.store.taskmanager.exception.ResourceNotFoundException;
 import com.store.taskmanager.repository.UserRepository;
@@ -69,7 +68,6 @@ public class UserService {
         if (request.getEmail() != null) user.setEmail(request.getEmail());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
         if (request.getRole() != null) user.setRole(request.getRole());
-        if (request.getStatus() != null) user.setStatus(request.getStatus());
 
         if (request.getTeamId() != null) {
             Team team = teamRepository.findById(request.getTeamId())
@@ -88,22 +86,6 @@ public class UserService {
         auditLogService.log("USER_UPDATED", "User", id, null, "user updated", currentUser);
 
         return mapToDTO(user);
-    }
-
-    @Transactional
-    public void setUserStatus(Long id, UserStatus status, User currentUser) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
-        if (user.getStatus() == status) {
-            throw new BadRequestException("User is already " + status.name().toLowerCase());
-        }
-
-        user.setStatus(status);
-        userRepository.save(user);
-
-        auditLogService.log("USER_STATUS_CHANGED", "User", id, null,
-                "user status changed to " + status.name(), currentUser);
     }
 
     @Transactional
@@ -151,7 +133,6 @@ public class UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setRole(user.getRole());
-        dto.setStatus(user.getStatus());
         dto.setFirstLogin(user.isFirstLogin());
         dto.setCreatedAt(user.getCreatedAt());
 

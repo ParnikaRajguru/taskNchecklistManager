@@ -2,16 +2,12 @@ package com.store.taskmanager.service;
 
 import com.store.taskmanager.dto.*;
 import com.store.taskmanager.entity.User;
-import com.store.taskmanager.entity.enums.Role;
-import com.store.taskmanager.entity.enums.UserStatus;
 import com.store.taskmanager.exception.BadRequestException;
 import com.store.taskmanager.exception.ResourceNotFoundException;
 import com.store.taskmanager.repository.UserRepository;
 import com.store.taskmanager.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,14 +26,6 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("Invalid username or password"));
-
-        if (user.getStatus() == UserStatus.INACTIVE || user.getStatus() == UserStatus.SUSPENDED) {
-            throw new BadRequestException("Account is " + user.getStatus().name().toLowerCase() + ". Contact administrator.");
-        }
-
-        if (user.getStatus() == UserStatus.LOCKED) {
-            throw new BadRequestException("Account is locked. Contact administrator.");
-        }
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -100,7 +88,6 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setRole(request.getRole());
-        user.setStatus(UserStatus.ACTIVE);
         user.setFirstLogin(true);
 
         userRepository.save(user);

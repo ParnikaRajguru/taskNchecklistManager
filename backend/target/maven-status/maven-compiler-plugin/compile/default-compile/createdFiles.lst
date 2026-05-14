@@ -56,12 +56,10 @@ com\store\taskmanager\dto\AuditLogDTO.class
 com\store\taskmanager\entity\enums\TaskStatus.class
 com\store\taskmanager\repository\ShiftRepository.class
 com\store\taskmanager\repository\UserRepository.class
-com\store\taskmanager\config\SecurityConfig.class
 com\store\taskmanager\dto\LoginResponse.class
 com\store\taskmanager\dto\ChecklistDTO.class
 com\store\taskmanager\security\JwtTokenProvider.class
 com\store\taskmanager\dto\ChangePasswordRequest.class
-com\store\taskmanager\entity\enums\UserStatus.class
 com\store\taskmanager\controller\TaskController.class
 com\store\taskmanager\entity\Handover.class
 com\store\taskmanager\repository\TeamRepository.class
@@ -72,9 +70,7 @@ com\store\taskmanager\controller\AuthController.class
 com\store\taskmanager\dto\DashboardDTO.class
 com\store\taskmanager\entity\enums\Role.class
 com\store\taskmanager\controller\AuditController.class
-com\store\taskmanager\security\CustomUserDetailsService.class
 com\store\taskmanager\exception\ResourceNotFoundException.class
-com\store\taskmanager\security\JwtAuthenticationFilter.class
 com\store\taskmanager\repository\ChecklistRepository.class
 com\store\taskmanager\dto\CreateChecklistItemRequest.class
 com\store\taskmanager\dto\UpdateUserRequest.class

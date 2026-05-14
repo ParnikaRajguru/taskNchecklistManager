@@ -59,7 +59,6 @@ C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com
 C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\entity\Checklist.java
 C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\security\JwtAuthenticationFilter.java
 C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\controller\TeamController.java
-C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\entity\enums\UserStatus.java
 C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\dto\HandoverDTO.java
 C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\service\AuditLogService.java
 C:\Users\Parnika Rajguru\Desktop\taskNchecklistManager\backend\src\main\java\com\store\taskmanager\entity\enums\HandoverPriority.java

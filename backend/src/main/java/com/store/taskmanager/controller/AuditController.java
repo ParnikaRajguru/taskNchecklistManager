@@ -13,23 +13,23 @@ import java.util.List;
 @RequestMapping("/api/audit-logs")
 @RequiredArgsConstructor
 public class AuditController {
-    
+
     private final AuditLogService auditLogService;
-    
+
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<List<AuditLogDTO>> getAllLogs() {
         return ResponseEntity.ok(auditLogService.getAllLogs());
     }
-    
+
     @GetMapping("/recent")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<List<AuditLogDTO>> getRecentLogs(@RequestParam(defaultValue = "7") int days) {
         return ResponseEntity.ok(auditLogService.getRecentLogs(days));
     }
-    
+
     @GetMapping("/by-user/{userId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<List<AuditLogDTO>> getLogsByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(auditLogService.getLogsByUser(userId));
     }

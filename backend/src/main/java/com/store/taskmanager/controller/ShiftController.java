@@ -18,27 +18,27 @@ import java.util.List;
 @RequestMapping("/api/shifts")
 @RequiredArgsConstructor
 public class ShiftController {
-    
+
     private final ShiftService shiftService;
     private final UserRepository userRepository;
-    
+
     @GetMapping
     public ResponseEntity<List<ShiftDTO>> getAllShifts() {
         return ResponseEntity.ok(shiftService.getAllShifts());
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<ShiftDTO> getShiftById(@PathVariable Long id) {
         return ResponseEntity.ok(shiftService.getShiftById(id));
     }
-    
+
     @GetMapping("/active")
     public ResponseEntity<List<ShiftDTO>> getActiveShifts() {
         return ResponseEntity.ok(shiftService.getActiveShifts());
     }
-    
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ShiftDTO> createShift(
             @Valid @RequestBody CreateShiftRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -46,9 +46,9 @@ public class ShiftController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(shiftService.createShift(request, currentUser));
     }
-    
+
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ShiftDTO> updateShift(
             @PathVariable Long id,
             @Valid @RequestBody CreateShiftRequest request,
@@ -57,9 +57,9 @@ public class ShiftController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(shiftService.updateShift(id, request, currentUser));
     }
-    
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<String> deleteShift(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

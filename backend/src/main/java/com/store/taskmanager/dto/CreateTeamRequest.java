@@ -11,7 +11,7 @@ public class CreateTeamRequest {
 
     private String description;
     private Long projectId;
-    private Long teamManagerId;
+    private Long managerId;
     private Long teamLeadId;
     private List<Long> memberIds;
 }

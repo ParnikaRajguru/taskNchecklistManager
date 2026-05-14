@@ -10,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -125,7 +126,6 @@ public class DataInitializer implements CommandLineRunner {
         user.setLastName(lastName);
         user.setEmail(email);
         user.setRole(role);
-        user.setStatus(UserStatus.ACTIVE);
         user.setFirstLogin(firstLogin);
         shiftAssignment(user);
         userRepository.save(user);
@@ -150,24 +150,24 @@ public class DataInitializer implements CommandLineRunner {
         p1.setName("Store Website Revamp");
         p1.setDescription("Modernize the store website with new design and features");
         p1.setStatus("ACTIVE");
-        p1.setStartDate(LocalDateTime.now().minusMonths(2));
-        p1.setEndDate(LocalDateTime.now().plusMonths(4));
+        p1.setStartDate(LocalDate.now().minusMonths(2));
+        p1.setEndDate(LocalDate.now().plusMonths(4));
         projectRepository.save(p1);
 
         Project p2 = new Project();
         p2.setName("Inventory Management System");
         p2.setDescription("Build a new inventory tracking and management system");
         p2.setStatus("ACTIVE");
-        p2.setStartDate(LocalDateTime.now().minusMonths(1));
-        p2.setEndDate(LocalDateTime.now().plusMonths(6));
+        p2.setStartDate(LocalDate.now().minusMonths(1));
+        p2.setEndDate(LocalDate.now().plusMonths(6));
         projectRepository.save(p2);
 
         Project p3 = new Project();
         p3.setName("Customer Loyalty Program");
         p3.setDescription("Implement a new customer rewards and loyalty system");
         p3.setStatus("PLANNING");
-        p3.setStartDate(LocalDateTime.now().plusMonths(1));
-        p3.setEndDate(LocalDateTime.now().plusMonths(7));
+        p3.setStartDate(LocalDate.now().plusMonths(1));
+        p3.setEndDate(LocalDate.now().plusMonths(7));
         projectRepository.save(p3);
 
         log.info("Created 3 projects");
@@ -198,7 +198,6 @@ public class DataInitializer implements CommandLineRunner {
         frontend.setName("Frontend Team");
         frontend.setDescription("Handles all frontend development for web projects");
         frontend.setProject(webProject);
-        frontend.setTeamManager(john);
         frontend.setTeamLead(sarah);
         teamRepository.save(frontend);
 
@@ -208,15 +207,15 @@ public class DataInitializer implements CommandLineRunner {
         backend.setName("Backend Team");
         backend.setDescription("Handles backend API and database development");
         backend.setProject(webProject);
-        backend.setTeamManager(john);
         backend.setTeamLead(jenny);
         teamRepository.save(backend);
+
+        assignMembers(backend, Arrays.asList());
 
         Team qaTeam = new Team();
         qaTeam.setName("QA Team");
         qaTeam.setDescription("Testing and quality assurance for all projects");
         qaTeam.setProject(webProject);
-        qaTeam.setTeamManager(john);
         qaTeam.setTeamLead(sarah);
         teamRepository.save(qaTeam);
 
@@ -226,7 +225,6 @@ public class DataInitializer implements CommandLineRunner {
         inventory.setName("Inventory Team");
         inventory.setDescription("Inventory system development and maintenance");
         inventory.setProject(invProject);
-        inventory.setTeamManager(john);
         inventory.setTeamLead(jenny);
         teamRepository.save(inventory);
 
@@ -267,20 +265,20 @@ public class DataInitializer implements CommandLineRunner {
         Project web = getProject("Store Website Revamp");
         Project inv = getProject("Inventory Management System");
 
-        createTask("Design new homepage layout", "Create wireframes and mockups for the new homepage", TaskStatus.COMPLETED, TaskPriority.HIGH, web, frontend, mike, admin, LocalDateTime.now().minusDays(30));
-        createTask("Implement React components", "Build reusable React components", TaskStatus.IN_PROGRESS, TaskPriority.HIGH, web, frontend, mike, sarah, LocalDateTime.now().plusDays(5));
-        createTask("Set up REST API endpoints", "Create API endpoints for user auth and data", TaskStatus.COMPLETED, TaskPriority.HIGH, web, backend, sarah, admin, LocalDateTime.now().minusDays(25));
-        createTask("Database schema design", "Design and implement database schema", TaskStatus.COMPLETED, TaskPriority.MEDIUM, web, backend, jenny, admin, LocalDateTime.now().minusDays(35));
-        createTask("Write unit tests", "Create unit tests for all components", TaskStatus.IN_REVIEW, TaskPriority.MEDIUM, web, qaTeam, emily, mike, LocalDateTime.now().plusDays(3));
-        createTask("Integration testing", "Test API integration with frontend", TaskStatus.TESTING, TaskPriority.HIGH, web, qaTeam, emily, sarah, LocalDateTime.now().plusDays(7));
-        createTask("Inventory database design", "Design database tables for inventory tracking", TaskStatus.IN_PROGRESS, TaskPriority.HIGH, inv, inventory, jenny, john, LocalDateTime.now().plusDays(10));
-        createTask("Stock management API", "Build REST API for stock management", TaskStatus.TODO, TaskPriority.MEDIUM, inv, inventory, david, john, LocalDateTime.now().plusDays(20));
+        createTask("Design new homepage layout", "Create wireframes and mockups for the new homepage", TaskStatus.COMPLETED, TaskPriority.HIGH, web, frontend, mike, admin, LocalDate.now().minusDays(30));
+        createTask("Implement React components", "Build reusable React components", TaskStatus.IN_PROGRESS, TaskPriority.HIGH, web, frontend, mike, sarah, LocalDate.now().plusDays(5));
+        createTask("Set up REST API endpoints", "Create API endpoints for user auth and data", TaskStatus.COMPLETED, TaskPriority.HIGH, web, backend, sarah, admin, LocalDate.now().minusDays(25));
+        createTask("Database schema design", "Design and implement database schema", TaskStatus.COMPLETED, TaskPriority.MEDIUM, web, backend, jenny, admin, LocalDate.now().minusDays(35));
+        createTask("Write unit tests", "Create unit tests for all components", TaskStatus.IN_REVIEW, TaskPriority.MEDIUM, web, qaTeam, emily, mike, LocalDate.now().plusDays(3));
+        createTask("Integration testing", "Test API integration with frontend", TaskStatus.TESTING, TaskPriority.HIGH, web, qaTeam, emily, sarah, LocalDate.now().plusDays(7));
+        createTask("Inventory database design", "Design database tables for inventory tracking", TaskStatus.IN_PROGRESS, TaskPriority.HIGH, inv, inventory, jenny, john, LocalDate.now().plusDays(10));
+        createTask("Stock management API", "Build REST API for stock management", TaskStatus.TODO, TaskPriority.MEDIUM, inv, inventory, david, john, LocalDate.now().plusDays(20));
 
         log.info("Created 8 tasks");
     }
 
     private void createTask(String title, String description, TaskStatus status, TaskPriority priority,
-                            Project project, Team team, User assignedTo, User createdBy, LocalDateTime dueDate) {
+                            Project project, Team team, User assignedTo, User createdBy, LocalDate dueDate) {
         Task task = new Task();
         task.setTitle(title);
         task.setDescription(description);
@@ -315,9 +313,9 @@ public class DataInitializer implements CommandLineRunner {
         morningStore.setCreatedBy(sarah);
         checklistRepository.save(morningStore);
 
-        createChecklistItem("Check all entrances", "Verify all doors are unlocked and secure", false, morningStore, mike, null);
-        createChecklistItem("Verify POS systems online", "Ensure all register systems are working", false, morningStore, mike, null);
-        createChecklistItem("Team briefing", "Conduct morning team meeting", true, morningStore, sarah, null);
+        createChecklistItem("Check all entrances", "Verify all doors are unlocked and secure", false, morningStore, mike);
+        createChecklistItem("Verify POS systems online", "Ensure all register systems are working", false, morningStore, mike);
+        createChecklistItem("Team briefing", "Conduct morning team meeting", true, morningStore, sarah);
 
         Checklist eveningStore = new Checklist();
         eveningStore.setTitle("Evening Shift Checklist - Store");
@@ -327,8 +325,8 @@ public class DataInitializer implements CommandLineRunner {
         eveningStore.setCreatedBy(sarah);
         checklistRepository.save(eveningStore);
 
-        createChecklistItem("Cash reconciliation", "Count and reconcile daily receipts", false, eveningStore, mike, null);
-        createChecklistItem("Clean and sanitize", "End-of-day cleaning tasks", false, eveningStore, emily, null);
+        createChecklistItem("Cash reconciliation", "Count and reconcile daily receipts", false, eveningStore, mike);
+        createChecklistItem("Clean and sanitize", "End-of-day cleaning tasks", false, eveningStore, emily);
 
         Checklist morningWarehouse = new Checklist();
         morningWarehouse.setTitle("Morning Shift Checklist - Warehouse");
@@ -338,8 +336,8 @@ public class DataInitializer implements CommandLineRunner {
         morningWarehouse.setCreatedBy(jenny);
         checklistRepository.save(morningWarehouse);
 
-        createChecklistItem("Receive shipments", "Process incoming deliveries", false, morningWarehouse, david, null);
-        createChecklistItem("Update inventory log", "Log all received items in the system", true, morningWarehouse, david, null);
+        createChecklistItem("Receive shipments", "Process incoming deliveries", false, morningWarehouse, david);
+        createChecklistItem("Update inventory log", "Log all received items in the system", true, morningWarehouse, david);
 
         Checklist eveningWarehouse = new Checklist();
         eveningWarehouse.setTitle("Evening Shift Checklist - Warehouse");
@@ -349,20 +347,19 @@ public class DataInitializer implements CommandLineRunner {
         eveningWarehouse.setCreatedBy(jenny);
         checklistRepository.save(eveningWarehouse);
 
-        createChecklistItem("Stock count", "Count and verify stock levels for high-value items", false, eveningWarehouse, david, null);
+        createChecklistItem("Stock count", "Count and verify stock levels for high-value items", false, eveningWarehouse, david);
 
         log.info("Created 4 checklists with 8 items");
     }
 
     private void createChecklistItem(String title, String description, boolean completed,
-                                     Checklist checklist, User assignedTo, Task task) {
+                                     Checklist checklist, User assignedTo) {
         ChecklistItem item = new ChecklistItem();
         item.setTitle(title);
         item.setDescription(description);
         item.setCompleted(completed);
         item.setChecklist(checklist);
         item.setAssignedTo(assignedTo);
-        item.setTask(task);
         checklistItemRepository.save(item);
     }
 

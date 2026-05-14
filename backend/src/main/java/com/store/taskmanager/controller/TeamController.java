@@ -27,7 +27,6 @@ public class TeamController {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                user.getRole().name().equals("PROJECT_MANAGER") ||
                 user.getRole().name().equals("MANAGER");
         if (isManager) {
             return ResponseEntity.ok(teamService.getAllTeams());
@@ -60,7 +59,7 @@ public class TeamController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<TeamDTO> createTeam(
             @Valid @RequestBody CreateTeamRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -70,7 +69,7 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<TeamDTO> updateTeam(
             @PathVariable Long id,
             @Valid @RequestBody CreateTeamRequest request,
@@ -81,7 +80,7 @@ public class TeamController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public ResponseEntity<String> deleteTeam(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

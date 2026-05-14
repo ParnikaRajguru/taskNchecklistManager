@@ -12,17 +12,16 @@ export default function Layout() {
     navigate('/login')
   }
 
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+  const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
   const isTeamLead = user?.role === 'TEAM_LEAD'
-  const isStaff = user?.role === 'STAFF'
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊', show: true },
     { path: '/tasks', label: 'Tasks', icon: '✅', show: true },
-    { path: '/projects', label: 'Projects', icon: '📁', show: !isStaff || true },
+    { path: '/projects', label: 'Projects', icon: '📁', show: true },
     { path: '/teams', label: 'Teams', icon: '👥', show: true },
     { path: '/users', label: 'Users', icon: '👤', show: isManager || isTeamLead },
-    { path: '/shifts', label: 'Shifts', icon: '⏰', show: !isStaff },
+    { path: '/shifts', label: 'Shifts', icon: '⏰', show: !isTeamLead ? true : false },
     { path: '/checklists', label: 'Checklists', icon: '📋', show: true },
     { path: '/handovers', label: 'Handovers', icon: '🔄', show: true }
   ]
@@ -34,7 +33,7 @@ export default function Layout() {
           <h1 className="text-xl font-bold">Task Manager</h1>
           <p className="text-sm text-gray-400 mt-1">Store Operations</p>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-1">
           {navItems.filter(item => item.show).map((item) => (
             <NavLink
@@ -49,7 +48,7 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        
+
         <div className="p-4 border-t border-gray-800">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
@@ -72,7 +71,7 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      
+
       <main className="flex-1 overflow-auto">
         <header className="bg-white shadow-sm p-4 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-800">
@@ -87,17 +86,15 @@ export default function Layout() {
                 Change Password
               </button>
             )}
-            {isStaff && (
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                className="btn btn-secondary text-sm"
-              >
-                Change Password
-              </button>
-            )}
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="btn btn-secondary text-sm"
+            >
+              Change Password
+            </button>
           </div>
         </header>
-        
+
         <div className="p-6">
           <Outlet />
         </div>
@@ -123,12 +120,12 @@ function PasswordModal({ onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    
+
     if (formData.newPassword !== formData.confirmPassword) {
       setError('New passwords do not match')
       return
     }
-    
+
     try {
       await changePassword(formData)
       setSuccess(true)
@@ -142,7 +139,7 @@ function PasswordModal({ onClose }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-96">
         <h3 className="text-lg font-semibold mb-4">Change Password</h3>
-        
+
         {success ? (
           <div className="text-green-600">Password changed successfully!</div>
         ) : (
@@ -168,9 +165,9 @@ function PasswordModal({ onClose }) {
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
             />
-            
+
             {error && <p className="text-red-600 text-sm">{error}</p>}
-            
+
             <div className="flex gap-2">
               <button type="submit" className="btn btn-primary flex-1">
                 Change

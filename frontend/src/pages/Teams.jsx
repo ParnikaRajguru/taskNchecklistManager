@@ -7,10 +7,12 @@ export default function Teams() {
   const [projects, setProjects] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingTeam, setEditingTeam] = useState(null)
+  const [error, setError] = useState('')
   const { user } = useAuth()
-  const [formData, setFormData] = useState({ name: '', description: '', projectId: '', teamManagerId: '', teamLeadId: '', memberIds: [] })
+  const [formData, setFormData] = useState({ name: '', description: '', projectId: '', managerId: '', teamLeadId: '', memberIds: [] })
 
   useEffect(() => { loadData() }, [])
 
@@ -25,13 +27,22 @@ export default function Teams() {
     finally { setLoading(false) }
   }
 
+  const getErrorMessage = (err) => {
+    if (err.response?.data?.errors) {
+      return Object.values(err.response.data.errors).join(', ')
+    }
+    return err.response?.data?.message || err.message || 'Failed to save'
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    setSubmitting(true)
     try {
       const data = {
         ...formData,
         projectId: formData.projectId || null,
-        teamManagerId: formData.teamManagerId || null,
+        managerId: formData.managerId || null,
         teamLeadId: formData.teamLeadId || null,
         memberIds: formData.memberIds || []
       }
@@ -41,7 +52,11 @@ export default function Teams() {
       setEditingTeam(null)
       resetForm()
       loadData()
-    } catch (err) { alert(err.response?.data?.message || 'Failed to save') }
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleEdit = (team) => {
@@ -50,7 +65,7 @@ export default function Teams() {
       name: team.name,
       description: team.description || '',
       projectId: team.projectId || '',
-      teamManagerId: team.teamManagerId || '',
+      managerId: team.managerId || '',
       teamLeadId: team.teamLeadId || '',
       memberIds: team.memberIds || []
     })
@@ -73,9 +88,13 @@ export default function Teams() {
     }))
   }
 
-  const resetForm = () => setFormData({ name: '', description: '', projectId: '', teamManagerId: '', teamLeadId: '', memberIds: [] })
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
-  const isStaff = ['STAFF'].includes(user?.role)
+  const resetForm = () => setFormData({ name: '', description: '', projectId: '', managerId: '', teamLeadId: '', memberIds: [] })
+
+  const managers = users.filter(u => u.role === 'MANAGER')
+  const teamLeads = users.filter(u => u.role === 'TEAM_LEAD')
+  const memberPool = users.filter(u => ['STAFF', 'DEVELOPER', 'TESTER'].includes(u.role))
+
+  const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
 
@@ -98,16 +117,14 @@ export default function Teams() {
               <p className="text-gray-500 text-sm mb-3">{team.description || 'No description'}</p>
               <div className="text-sm text-gray-500 mb-3">
                 <p>Project: {team.projectName || 'None'}</p>
-                <p>Manager: {team.teamManagerName || 'Not assigned'}</p>
+                <p>Manager: {team.managerName || 'Not assigned'}</p>
                 <p>Team Lead: {team.teamLeadName || 'Not assigned'}</p>
-              <p>Members: {team.memberCount || 0}</p>
-            </div>
-            <div className="flex gap-2 text-xs mb-3">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Tasks: {team.taskCount || 0}</span>
-              <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Shifts: {team.shiftCount || 0}</span>
-              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">Checklists: {team.checklistCount || 0}</span>
-            </div>
-              {!isStaff && team.memberNames && team.memberNames.length > 0 && (
+                <p>Members: {team.memberCount || 0}</p>
+              </div>
+              <div className="flex gap-2 text-xs mb-3">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Tasks: {team.taskCount || 0}</span>
+              </div>
+              {team.memberNames && team.memberNames.length > 0 && (
                 <div className="text-sm text-gray-500 mb-3">
                   <p className="font-medium mb-1">Members:</p>
                   {team.memberIds.map((mid, idx) => {
@@ -120,14 +137,6 @@ export default function Teams() {
                   })}
                 </div>
               )}
-              {isStaff && (
-                <div className="text-sm text-gray-500 mb-3">
-                  <p className="font-medium mb-1">Members:</p>
-                  {team.memberNames?.map((name, idx) => (
-                    <p key={idx} className="ml-2">{name}</p>
-                  ))}
-                </div>
-              )}
               {isManager && <div className="flex gap-2"><button onClick={() => handleEdit(team)} className="btn btn-secondary text-sm">Edit</button><button onClick={() => handleDelete(team.id)} className="btn btn-danger text-sm">Delete</button></div>}
             </div>
           ))}
@@ -138,6 +147,7 @@ export default function Teams() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">{editingTeam ? 'Edit' : 'Create'} Team</h3>
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <input type="text" placeholder="Team Name" className="input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
               <textarea placeholder="Description" className="input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
@@ -145,18 +155,46 @@ export default function Teams() {
                 <option value="">Select Project</option>
                 {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              <select className="input" value={formData.teamManagerId} onChange={(e) => setFormData({ ...formData, teamManagerId: e.target.value })}>
-                <option value="">Select Manager</option>
-                {users.filter(u => ['MANAGER', 'PROJECT_MANAGER', 'SUPER_ADMIN'].includes(u.role)).map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
-              </select>
-              <select className="input" value={formData.teamLeadId} onChange={(e) => setFormData({ ...formData, teamLeadId: e.target.value })}>
-                <option value="">Select Team Lead</option>
-                {users.filter(u => ['TEAM_LEAD', 'MANAGER', 'PROJECT_MANAGER'].includes(u.role)).map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
-              </select>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Team Manager</label>
+                <select className="input" value={formData.managerId} onChange={(e) => {
+                  const val = e.target.value
+                  setFormData(prev => ({
+                    ...prev,
+                    managerId: val,
+                    memberIds: prev.memberIds.filter(id => id !== Number(val))
+                  }))
+                }}>
+                  <option value="">Select Manager</option>
+                  {managers.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Team Lead</label>
+                <select className="input" value={formData.teamLeadId} onChange={(e) => {
+                  const val = e.target.value
+                  setFormData(prev => ({
+                    ...prev,
+                    teamLeadId: val,
+                    memberIds: prev.memberIds.filter(id => id !== Number(val))
+                  }))
+                }}>
+                  <option value="">Select Team Lead</option>
+                  {teamLeads.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Team Members
+                  <span className="text-xs text-gray-400 ml-1">(Staff, Developer, Tester)</span>
+                </label>
                 <div className="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1">
-                  {users.filter(u => !['SUPER_ADMIN'].includes(u.role)).map((u) => (
+                  {memberPool
+                    .filter(u => u.id !== Number(formData.managerId) && u.id !== Number(formData.teamLeadId))
+                    .map((u) => (
                     <label key={u.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                       <input
                         type="checkbox"
@@ -167,11 +205,14 @@ export default function Teams() {
                       <span className="text-sm">{u.firstName} {u.lastName} ({u.role})</span>
                     </label>
                   ))}
+                  {memberPool.filter(u => u.id !== Number(formData.managerId) && u.id !== Number(formData.teamLeadId)).length === 0 && (
+                    <p className="text-xs text-gray-400 text-center py-2">No members available</p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">{editingTeam ? 'Update' : 'Create'}</button>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Saving...' : (editingTeam ? 'Update' : 'Create')}</button>
+                <button type="button" onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
               </div>
             </form>
           </div>

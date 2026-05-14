@@ -8,11 +8,9 @@ import java.util.List;
 public class CreateChecklistRequest {
     @NotBlank(message = "Checklist title is required")
     private String title;
-    
+
     private String description;
-    private Long projectId;
     private Long shiftId;
     private Long teamId;
-    private Long taskId;
     private List<CreateChecklistItemRequest> items;
 }

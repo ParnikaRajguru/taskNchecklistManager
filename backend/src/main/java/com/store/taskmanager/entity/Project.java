@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,23 +26,14 @@ public class Project {
 
     private String status;
 
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private List<Team> teams = new ArrayList<>();
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private List<Task> tasks = new ArrayList<>();
-
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
-    private List<Shift> shifts = new ArrayList<>();
-
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
-    private List<Checklist> checklists = new ArrayList<>();
-
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
-    private List<Handover> handovers = new ArrayList<>();
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

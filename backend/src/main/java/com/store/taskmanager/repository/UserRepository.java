@@ -2,7 +2,6 @@ package com.store.taskmanager.repository;
 
 import com.store.taskmanager.entity.User;
 import com.store.taskmanager.entity.enums.Role;
-import com.store.taskmanager.entity.enums.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -16,6 +15,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRole(Role role);
     List<User> findByTeamId(Long teamId);
     List<User> findByShiftId(Long shiftId);
-    List<User> findByStatus(UserStatus status);
-    List<User> findByStatusNot(UserStatus status);
 }

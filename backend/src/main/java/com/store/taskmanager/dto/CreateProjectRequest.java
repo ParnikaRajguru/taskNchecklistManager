@@ -2,15 +2,15 @@ package com.store.taskmanager.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 public class CreateProjectRequest {
     @NotBlank(message = "Project name is required")
     private String name;
-    
+
     private String description;
     private String status;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
 }

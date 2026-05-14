@@ -1,42 +1,63 @@
 import { useState, useEffect } from 'react'
-import { shiftService, projectService, teamService } from '../services/api'
+import { shiftService, teamService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export default function Shifts() {
   const [shifts, setShifts] = useState([])
-  const [projects, setProjects] = useState([])
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingShift, setEditingShift] = useState(null)
+  const [error, setError] = useState('')
   const { user } = useAuth()
-  const [formData, setFormData] = useState({ name: '', shiftType: 'MORNING', startTime: '', endTime: '', active: true, projectId: '', teamId: '' })
+  const [formData, setFormData] = useState({ name: '', shiftType: 'MORNING', startTime: '', endTime: '', active: true, teamId: '' })
 
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     try {
-      const projectsPromise = projectService.getAll()
       const teamsPromise = teamService.getAll()
-      const [res, projectsRes, teamsRes] = await Promise.all([shiftService.getAll(), projectsPromise, teamsPromise])
+      const [res, teamsRes] = await Promise.all([shiftService.getAll(), teamsPromise])
       setShifts(res.data)
-      setProjects(projectsRes.data)
       setTeams(teamsRes.data)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
 
+  const getErrorMessage = (err) => {
+    if (err.response?.data?.errors) {
+      return Object.values(err.response.data.errors).join(', ')
+    }
+    return err.response?.data?.message || err.message || 'Failed to save'
+  }
+
+  const validateTimes = () => {
+    if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
+      setError('End time must be after start time')
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    if (!validateTimes()) return
+    setSubmitting(true)
     try {
-      const data = { ...formData, projectId: formData.projectId || null, teamId: formData.teamId || null }
+      const data = { ...formData, teamId: formData.teamId || null }
       if (editingShift) await shiftService.update(editingShift.id, data)
       else await shiftService.create(data)
       setShowModal(false)
       setEditingShift(null)
       resetForm()
       loadData()
-    } catch (err) { alert(err.response?.data?.message || 'Failed to save') }
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleEdit = (shift) => {
@@ -47,7 +68,6 @@ export default function Shifts() {
       startTime: shift.startTime || '',
       endTime: shift.endTime || '',
       active: shift.active,
-      projectId: shift.projectId || '',
       teamId: shift.teamId || ''
     })
     setShowModal(true)
@@ -60,8 +80,8 @@ export default function Shifts() {
     }
   }
 
-  const resetForm = () => setFormData({ name: '', shiftType: 'MORNING', startTime: '', endTime: '', active: true, projectId: '', teamId: '' })
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+  const resetForm = () => setFormData({ name: '', shiftType: 'MORNING', startTime: '', endTime: '', active: true, teamId: '' })
+  const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
 
@@ -90,13 +110,7 @@ export default function Shifts() {
               {shift.startTime && shift.endTime ? `${shift.startTime} - ${shift.endTime}` : 'Time not set'}
             </p>
             <div className="text-xs text-gray-500 mb-3">
-              <p>Project: {shift.projectName || 'None'}</p>
               <p>Team: {shift.teamName || 'None'}</p>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500 mb-3">
-              <span>Users: {shift.userCount || 0}</span>
-              <span>Tasks: {shift.taskCount || 0}</span>
-              <span>Checklists: {shift.checklistCount || 0}</span>
             </div>
             <div className="flex gap-2">
               {isManager && <><button onClick={() => handleEdit(shift)} className="btn btn-secondary text-sm">Edit</button><button onClick={() => handleDelete(shift.id)} className="btn btn-danger text-sm">Delete</button></>}
@@ -110,34 +124,35 @@ export default function Shifts() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">{editingShift ? 'Edit' : 'Create'} Shift</h3>
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <input type="text" placeholder="Shift Name" className="input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-              <div className="grid grid-cols-2 gap-4">
-                <select className="input" value={formData.projectId} onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}>
-                  <option value="">Select Project</option>
-                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
-                  <option value="">Select Team</option>
-                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
+              <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
+                <option value="">Select Team</option>
+                {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
               <select className="input" value={formData.shiftType} onChange={(e) => setFormData({ ...formData, shiftType: e.target.value })}>
                 <option value="MORNING">Morning</option>
                 <option value="EVENING">Evening</option>
                 <option value="NIGHT">Night</option>
               </select>
               <div className="grid grid-cols-2 gap-4">
-                <input type="time" className="input" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} />
-                <input type="time" className="input" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Start Time</label>
+                  <input type="time" className="input" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">End Time</label>
+                  <input type="time" className="input" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} />
+                </div>
               </div>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={formData.active} onChange={(e) => setFormData({ ...formData, active: e.target.checked })} />
-                <span>Active</span>
+                <span className="text-sm">Active</span>
               </label>
               <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">{editingShift ? 'Update' : 'Create'}</button>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Saving...' : (editingShift ? 'Update' : 'Create')}</button>
+                <button type="button" onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
               </div>
             </form>
           </div>

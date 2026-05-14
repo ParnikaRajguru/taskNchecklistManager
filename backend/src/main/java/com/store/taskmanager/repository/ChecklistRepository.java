@@ -12,7 +12,6 @@ public interface ChecklistRepository extends JpaRepository<Checklist, Long> {
     List<Checklist> findByShiftId(Long shiftId);
     List<Checklist> findByTeamId(Long teamId);
     List<Checklist> findByCreatedById(Long userId);
-    List<Checklist> findByTaskId(Long taskId);
 
     @Query("SELECT c FROM Checklist c WHERE c.createdAt < ?1 AND c.id IN (SELECT ci.checklist.id FROM ChecklistItem ci WHERE ci.completed = false)")
     List<Checklist> findDelayedChecklists(LocalDateTime date);

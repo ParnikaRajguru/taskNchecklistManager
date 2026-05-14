@@ -1,6 +1,7 @@
 package com.store.taskmanager.dto;
 
 import lombok.Data;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -9,12 +10,9 @@ public class ProjectDTO {
     private String name;
     private String description;
     private String status;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private Integer teamCount;
     private Integer taskCount;
-    private Integer shiftCount;
-    private Integer checklistCount;
-    private Integer handoverCount;
     private LocalDateTime createdAt;
 }

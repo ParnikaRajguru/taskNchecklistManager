@@ -13,12 +13,7 @@ public class ShiftDTO {
     private LocalTime startTime;
     private LocalTime endTime;
     private boolean active;
-    private Long projectId;
-    private String projectName;
     private Long teamId;
     private String teamName;
-    private Integer userCount;
-    private Integer checklistCount;
-    private Integer taskCount;
     private LocalDateTime createdAt;
 }

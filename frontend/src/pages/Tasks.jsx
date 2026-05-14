@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
-import { taskService, projectService, teamService, userService, shiftService } from '../services/api'
+import { taskService, projectService, teamService, userService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([])
   const [projects, setProjects] = useState([])
   const [teams, setTeams] = useState([])
-  const [shifts, setShifts] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
+  const [error, setError] = useState('')
   const { user } = useAuth()
 
   const [formData, setFormData] = useState({
@@ -20,7 +21,6 @@ export default function Tasks() {
     priority: 'MEDIUM',
     projectId: '',
     teamId: '',
-    shiftId: '',
     assignedToId: '',
     dueDate: ''
   })
@@ -34,15 +34,13 @@ export default function Tasks() {
       const tasksPromise = taskService.getAll()
       const projectsPromise = projectService.getAll()
       const teamsPromise = teamService.getAll()
-      const shiftsPromise = shiftService.getAll()
       const usersPromise = userService.getAll().catch(() => ({ data: [] }))
-      const [tasksRes, projectsRes, teamsRes, shiftsRes, usersRes] = await Promise.all([
-        tasksPromise, projectsPromise, teamsPromise, shiftsPromise, usersPromise
+      const [tasksRes, projectsRes, teamsRes, usersRes] = await Promise.all([
+        tasksPromise, projectsPromise, teamsPromise, usersPromise
       ])
       setTasks(tasksRes.data)
       setProjects(projectsRes.data)
       setTeams(teamsRes.data)
-      setShifts(shiftsRes.data)
       setUsers(usersRes.data)
     } catch (err) {
       console.error(err)
@@ -51,8 +49,17 @@ export default function Tasks() {
     }
   }
 
+  const getErrorMessage = (err) => {
+    if (err.response?.data?.errors) {
+      return Object.values(err.response.data.errors).join(', ')
+    }
+    return err.response?.data?.message || err.message || 'Failed to save task'
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    setSubmitting(true)
     try {
       const data = {
         ...formData,
@@ -61,19 +68,21 @@ export default function Tasks() {
         assignedToId: formData.assignedToId || null,
         dueDate: formData.dueDate || null
       }
-      
+
       if (editingTask) {
         await taskService.update(editingTask.id, data)
       } else {
         await taskService.create(data)
       }
-      
+
       setShowModal(false)
       setEditingTask(null)
       resetForm()
       loadData()
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to save task')
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -86,7 +95,6 @@ export default function Tasks() {
       priority: task.priority,
       projectId: task.projectId || '',
       teamId: task.teamId || '',
-      shiftId: task.shiftId || '',
       assignedToId: task.assignedToId || '',
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : ''
     })
@@ -112,13 +120,12 @@ export default function Tasks() {
       priority: 'MEDIUM',
       projectId: '',
       teamId: '',
-      shiftId: '',
       assignedToId: '',
       dueDate: ''
     })
   }
 
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER', 'TEAM_LEAD'].includes(user?.role)
+  const isManager = ['SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD'].includes(user?.role)
 
   if (loading) {
     return <div className="text-center py-8">Loading...</div>
@@ -145,11 +152,9 @@ export default function Tasks() {
               <th>Title</th>
               <th>Project</th>
               <th>Team</th>
-              <th>Shift</th>
               <th>Assigned To</th>
               <th>Status</th>
               <th>Priority</th>
-              <th>Checklists</th>
               <th>Due Date</th>
               {isManager && <th>Actions</th>}
             </tr>
@@ -160,7 +165,6 @@ export default function Tasks() {
                 <td className="font-medium">{task.title}</td>
                 <td>{task.projectName || '-'}</td>
                 <td>{task.teamName || '-'}</td>
-                <td>{task.shiftName || '-'}</td>
                 <td>{task.assignedToName || '-'}</td>
                 <td>
                   <span className={`badge badge-${getStatusColor(task.status)}`}>
@@ -172,7 +176,6 @@ export default function Tasks() {
                     {task.priority}
                   </span>
                 </td>
-                <td>{task.checklistCount || 0}</td>
                 <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
                 {isManager && (
                   <td>
@@ -194,6 +197,11 @@ export default function Tasks() {
             ))}
           </tbody>
         </table>
+        {tasks.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No tasks found. {isManager ? 'Click "Add Task" to create one.' : ''}
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -202,6 +210,7 @@ export default function Tasks() {
             <h3 className="text-lg font-semibold mb-4">
               {editingTask ? 'Edit Task' : 'Create Task'}
             </h3>
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
@@ -266,16 +275,6 @@ export default function Tasks() {
               <div className="grid grid-cols-2 gap-4">
                 <select
                   className="input"
-                  value={formData.shiftId}
-                  onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
-                >
-                  <option value="">Select Shift</option>
-                  {shifts.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-                <select
-                  className="input"
                   value={formData.assignedToId}
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
                 >
@@ -284,8 +283,6 @@ export default function Tasks() {
                     <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
                   ))}
                 </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <input
                   type="date"
                   className="input"
@@ -294,12 +291,12 @@ export default function Tasks() {
                 />
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">
-                  {editingTask ? 'Update' : 'Create'}
+                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>
+                  {submitting ? 'Saving...' : (editingTask ? 'Update' : 'Create')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setError('') }}
                   className="btn btn-secondary"
                 >
                   Cancel

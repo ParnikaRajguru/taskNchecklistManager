@@ -11,8 +11,8 @@ public class TeamDTO {
     private String description;
     private Long projectId;
     private String projectName;
-    private Long teamManagerId;
-    private String teamManagerName;
+    private Long managerId;
+    private String managerName;
     private Long teamLeadId;
     private String teamLeadName;
     private List<Long> memberIds;
@@ -20,7 +20,5 @@ public class TeamDTO {
     private List<String> memberRoles;
     private Integer memberCount;
     private Integer taskCount;
-    private Integer shiftCount;
-    private Integer checklistCount;
     private LocalDateTime createdAt;
 }

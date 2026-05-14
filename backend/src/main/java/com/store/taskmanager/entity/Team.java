@@ -28,12 +28,12 @@ public class Team {
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_manager_id")
-    private User teamManager;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_lead_id")
     private User teamLead;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private User manager;
 
     @OneToMany(mappedBy = "team", fetch = FetchType.LAZY)
     private List<User> members = new ArrayList<>();
@@ -43,15 +43,6 @@ public class Team {
 
     @OneToMany(mappedBy = "team", fetch = FetchType.LAZY)
     private List<Shift> shifts = new ArrayList<>();
-
-    @OneToMany(mappedBy = "team", fetch = FetchType.LAZY)
-    private List<Checklist> checklists = new ArrayList<>();
-
-    @OneToMany(mappedBy = "assignedTeam", fetch = FetchType.LAZY)
-    private List<Handover> assignedHandovers = new ArrayList<>();
-
-    @OneToMany(mappedBy = "receivingTeam", fetch = FetchType.LAZY)
-    private List<Handover> receivingHandovers = new ArrayList<>();
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

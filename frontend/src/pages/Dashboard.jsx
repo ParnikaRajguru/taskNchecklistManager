@@ -37,7 +37,7 @@ export default function Dashboard() {
     { label: 'Delayed Checklists', value: data?.delayedChecklists || 0, color: 'pink' }
   ]
 
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+  const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
   return (
     <div className="space-y-6">
@@ -107,9 +107,6 @@ export default function Dashboard() {
               <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-800">{item.title}</p>
-                  {item.taskTitle && (
-                    <p className="text-sm text-gray-500">Task: {item.taskTitle}</p>
-                  )}
                 </div>
                 {item.assignedToName && (
                   <span className="text-sm text-gray-500">{item.assignedToName}</span>

@@ -1,7 +1,6 @@
 package com.store.taskmanager.entity;
 
 import com.store.taskmanager.entity.enums.Role;
-import com.store.taskmanager.entity.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,13 +34,12 @@ public class User {
 
     private String phone;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private String status = "ACTIVE";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserStatus status = UserStatus.ACTIVE;
+    private Role role;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
@@ -70,9 +68,5 @@ public class User {
 
     public String getFullName() {
         return firstName + " " + lastName;
-    }
-
-    public boolean isActive() {
-        return status == UserStatus.ACTIVE;
     }
 }

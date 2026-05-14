@@ -2,7 +2,6 @@ package com.store.taskmanager.controller;
 
 import com.store.taskmanager.dto.*;
 import com.store.taskmanager.entity.User;
-import com.store.taskmanager.entity.enums.UserStatus;
 import com.store.taskmanager.repository.UserRepository;
 import com.store.taskmanager.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +22,7 @@ public class UserController {
     private final UserRepository userRepository;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER', 'TEAM_LEAD')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
@@ -65,13 +64,13 @@ public class UserController {
     }
 
     @GetMapping("/by-role/{role}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<List<UserDTO>> getUsersByRole(@PathVariable String role) {
         return ResponseEntity.ok(userService.getUsersByRole(role));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<UserDTO> updateUser(
             @PathVariable Long id,
             @RequestBody UpdateUserRequest request,
@@ -81,21 +80,8 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUser(id, request, currentUser));
     }
 
-    @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
-    public ResponseEntity<String> setUserStatus(
-            @PathVariable Long id,
-            @RequestBody UpdateUserRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        User currentUser = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        userService.setUserStatus(id, request.getStatus(), currentUser);
-        String message = "User " + request.getStatus().name().toLowerCase() + "d successfully";
-        return ResponseEntity.ok(message);
-    }
-
     @PostMapping("/{id}/reset-password")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<String> resetPassword(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

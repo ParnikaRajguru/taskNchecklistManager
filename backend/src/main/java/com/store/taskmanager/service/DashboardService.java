@@ -19,8 +19,6 @@ public class DashboardService {
     private final TaskRepository taskRepository;
     private final HandoverRepository handoverRepository;
     private final ChecklistItemRepository checklistItemRepository;
-    private final UserRepository userRepository;
-    private final TeamRepository teamRepository;
     private final ChecklistRepository checklistRepository;
 
     public DashboardDTO getDashboardData(User user) {
@@ -32,7 +30,6 @@ public class DashboardService {
         }
 
         boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                          user.getRole().name().equals("PROJECT_MANAGER") ||
                           user.getRole().name().equals("MANAGER");
 
         List<com.store.taskmanager.entity.Task> allTasks;
@@ -73,7 +70,7 @@ public class DashboardService {
 
         dashboard.setOverdueTasks(allTasks.stream()
                 .filter(t -> t.getDueDate() != null &&
-                           t.getDueDate().isBefore(LocalDateTime.now()) &&
+                           t.getDueDate().isBefore(LocalDate.now()) &&
                            t.getStatus() != TaskStatus.COMPLETED)
                 .count());
         dashboard.setBlockedTasks(allTasks.stream()
@@ -142,11 +139,6 @@ public class DashboardService {
             dto.setTeamName(task.getTeam().getName());
         }
 
-        if (task.getShift() != null) {
-            dto.setShiftId(task.getShift().getId());
-            dto.setShiftName(task.getShift().getName());
-        }
-
         if (task.getAssignedTo() != null) {
             dto.setAssignedToId(task.getAssignedTo().getId());
             dto.setAssignedToName(task.getAssignedTo().getFullName());
@@ -165,11 +157,6 @@ public class DashboardService {
         dto.setNextShiftInstructions(handover.getNextShiftInstructions());
         dto.setResolved(handover.isResolved());
         dto.setCreatedAt(handover.getCreatedAt());
-
-        if (handover.getProject() != null) {
-            dto.setProjectId(handover.getProject().getId());
-            dto.setProjectName(handover.getProject().getName());
-        }
 
         if (handover.getFromShift() != null) {
             dto.setFromShiftId(handover.getFromShift().getId());
@@ -211,11 +198,6 @@ public class DashboardService {
         if (item.getAssignedTo() != null) {
             dto.setAssignedToId(item.getAssignedTo().getId());
             dto.setAssignedToName(item.getAssignedTo().getFullName());
-        }
-
-        if (item.getTask() != null) {
-            dto.setTaskId(item.getTask().getId());
-            dto.setTaskTitle(item.getTask().getTitle());
         }
 
         return dto;

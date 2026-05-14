@@ -1,7 +1,6 @@
 package com.store.taskmanager.security;
 
 import com.store.taskmanager.entity.User;
-import com.store.taskmanager.entity.enums.UserStatus;
 import com.store.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,15 +22,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        boolean isActive = user.getStatus() == UserStatus.ACTIVE;
-
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                isActive,
                 true,
                 true,
-                user.getStatus() != UserStatus.LOCKED,
+                true,
+                true,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
         );
     }

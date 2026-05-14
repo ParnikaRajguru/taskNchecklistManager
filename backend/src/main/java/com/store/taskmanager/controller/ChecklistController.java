@@ -18,37 +18,32 @@ import java.util.List;
 @RequestMapping("/api/checklists")
 @RequiredArgsConstructor
 public class ChecklistController {
-    
+
     private final ChecklistService checklistService;
     private final UserRepository userRepository;
-    
+
     @GetMapping
     public ResponseEntity<List<ChecklistDTO>> getAllChecklists() {
         return ResponseEntity.ok(checklistService.getAllChecklists());
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<ChecklistDTO> getChecklistById(@PathVariable Long id) {
         return ResponseEntity.ok(checklistService.getChecklistById(id));
     }
-    
+
     @GetMapping("/by-shift/{shiftId}")
     public ResponseEntity<List<ChecklistDTO>> getChecklistsByShift(@PathVariable Long shiftId) {
         return ResponseEntity.ok(checklistService.getChecklistsByShift(shiftId));
     }
-    
+
     @GetMapping("/by-team/{teamId}")
     public ResponseEntity<List<ChecklistDTO>> getChecklistsByTeam(@PathVariable Long teamId) {
         return ResponseEntity.ok(checklistService.getChecklistsByTeam(teamId));
     }
 
-    @GetMapping("/by-task/{taskId}")
-    public ResponseEntity<List<ChecklistDTO>> getChecklistsByTask(@PathVariable Long taskId) {
-        return ResponseEntity.ok(checklistService.getChecklistsByTask(taskId));
-    }
-    
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER', 'TEAM_LEAD')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD')")
     public ResponseEntity<ChecklistDTO> createChecklist(
             @Valid @RequestBody CreateChecklistRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -56,7 +51,7 @@ public class ChecklistController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(checklistService.createChecklist(request, currentUser));
     }
-    
+
     @PutMapping("/items/{itemId}/complete")
     public ResponseEntity<ChecklistItemDTO> completeItem(
             @PathVariable Long itemId,
@@ -65,7 +60,7 @@ public class ChecklistController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(checklistService.completeItem(itemId, currentUser));
     }
-    
+
     @PutMapping("/items/{itemId}/uncomplete")
     public ResponseEntity<ChecklistItemDTO> uncompleteItem(
             @PathVariable Long itemId,
@@ -74,9 +69,9 @@ public class ChecklistController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(checklistService.uncompleteItem(itemId, currentUser));
     }
-    
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<String> deleteChecklist(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

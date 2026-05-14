@@ -7,11 +7,13 @@ export default function Users() {
   const [teams, setTeams] = useState([])
   const [shifts, setShifts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showUserModal, setShowUserModal] = useState(false)
+  const [error, setError] = useState('')
   const { user: currentUser } = useAuth()
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
-  const [createUserData, setCreateUserData] = useState({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
+  const [createUserData, setCreateUserData] = useState({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '' })
 
   useEffect(() => { loadData() }, [])
 
@@ -28,14 +30,33 @@ export default function Users() {
     finally { setLoading(false) }
   }
 
+  const getErrorMessage = (err) => {
+    if (err.response?.data?.errors) {
+      const msgs = Object.values(err.response.data.errors)
+      return msgs.join(', ')
+    }
+    return err.response?.data?.message || err.message || 'An unexpected error occurred'
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    setSubmitting(true)
     try {
-      await authService.createUser(createUserData)
+      const payload = {
+        ...createUserData,
+        teamId: createUserData.teamId || null,
+        phone: createUserData.phone || null
+      }
+      await authService.createUser(payload)
       setShowUserModal(false)
-      setCreateUserData({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
+      setCreateUserData({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '' })
       loadData()
-    } catch (err) { alert(err.response?.data?.message || 'Failed to create user') }
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleEdit = (user) => {
@@ -52,19 +73,21 @@ export default function Users() {
   }
 
   const handleUpdate = async () => {
+    setError('')
+    setSubmitting(true)
     try {
-      await userService.update(showModal.id, formData)
+      const payload = {
+        ...formData,
+        teamId: formData.teamId || null,
+        shiftId: formData.shiftId || null
+      }
+      await userService.update(showModal.id, payload)
       setShowModal(false)
       loadData()
-    } catch (err) { alert(err.response?.data?.message || 'Failed to update') }
-  }
-
-  const handleToggleStatus = async (user) => {
-    const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-    const action = newStatus === 'INACTIVE' ? 'deactivate' : 'activate'
-    if (confirm(`${action} this user?`)) {
-      try { await userService.setStatus(user.id, newStatus); loadData() }
-      catch (err) { alert('Failed to ' + action) }
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -75,17 +98,7 @@ export default function Users() {
     }
   }
 
-  const getStatusBadge = (status) => {
-    const colors = {
-      ACTIVE: 'badge-green',
-      INACTIVE: 'badge-red',
-      SUSPENDED: 'badge-yellow',
-      LOCKED: 'badge-purple'
-    }
-    return colors[status] || 'badge-gray'
-  }
-
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER', 'TEAM_LEAD'].includes(currentUser?.role)
+  const isManager = ['SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD'].includes(currentUser?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
 
@@ -122,7 +135,6 @@ export default function Users() {
                 <th>Role</th>
                 <th>Team</th>
                 <th>Shift</th>
-                <th>Status</th>
                 {isManager && <th>Actions</th>}
               </tr>
             </thead>
@@ -135,13 +147,9 @@ export default function Users() {
                   <td><span className="badge badge-blue">{user.role}</span></td>
                   <td>{user.teamName || '-'}</td>
                   <td>{user.shiftName || '-'}</td>
-                  <td><span className={`badge ${getStatusBadge(user.status)}`}>{user.status}</span></td>
                   {isManager && (
                     <td>
                       <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
-                      <button onClick={() => handleToggleStatus(user)} className={`${user.status === 'ACTIVE' ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} mr-2`}>
-                        {user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                      </button>
                       <button onClick={() => handleResetPassword(user.id)} className="text-yellow-600 hover:text-yellow-800">Reset</button>
                     </td>
                   )}
@@ -156,6 +164,7 @@ export default function Users() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-4">Create User</h3>
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <input type="text" placeholder="Username" className="input" value={createUserData.username} onChange={(e) => setCreateUserData({ ...createUserData, username: e.target.value })} required />
@@ -171,22 +180,15 @@ export default function Users() {
                 <option value="STAFF">Staff</option>
                 <option value="TEAM_LEAD">Team Lead</option>
                 <option value="MANAGER">Manager</option>
-                <option value="PROJECT_MANAGER">Project Manager</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
               </select>
-              <div className="grid grid-cols-2 gap-4">
-                <select className="input" value={createUserData.teamId} onChange={(e) => setCreateUserData({ ...createUserData, teamId: e.target.value })}>
-                  <option value="">Select Team</option>
-                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-                <select className="input" value={createUserData.shiftId} onChange={(e) => setCreateUserData({ ...createUserData, shiftId: e.target.value })}>
-                  <option value="">Select Shift</option>
-                  {shifts.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
+              <select className="input" value={createUserData.teamId} onChange={(e) => setCreateUserData({ ...createUserData, teamId: e.target.value })}>
+                <option value="">Select Team</option>
+                {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
               <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">Create</button>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Creating...' : 'Create'}</button>
+                <button type="button" onClick={() => { setShowUserModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
               </div>
             </form>
           </div>
@@ -197,6 +199,7 @@ export default function Users() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-4">Edit User</h3>
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <input type="text" placeholder="First Name" className="input" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
@@ -208,7 +211,6 @@ export default function Users() {
                 <option value="STAFF">Staff</option>
                 <option value="TEAM_LEAD">Team Lead</option>
                 <option value="MANAGER">Manager</option>
-                <option value="PROJECT_MANAGER">Project Manager</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
               </select>
               <div className="grid grid-cols-2 gap-4">
@@ -222,8 +224,8 @@ export default function Users() {
                 </select>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleUpdate} className="btn btn-primary flex-1">Update</button>
-                <button onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+                <button onClick={handleUpdate} className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Updating...' : 'Update'}</button>
+                <button onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
               </div>
             </div>
           </div>

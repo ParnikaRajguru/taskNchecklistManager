@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext'
 export default function Projects() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingProject, setEditingProject] = useState(null)
+  const [error, setError] = useState('')
   const { user } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
@@ -26,8 +28,26 @@ export default function Projects() {
     finally { setLoading(false) }
   }
 
+  const getErrorMessage = (err) => {
+    if (err.response?.data?.errors) {
+      return Object.values(err.response.data.errors).join(', ')
+    }
+    return err.response?.data?.message || err.message || 'Failed to save'
+  }
+
+  const validateDates = () => {
+    if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
+      setError('End date must be after start date')
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    if (!validateDates()) return
+    setSubmitting(true)
     try {
       const data = {
         ...formData,
@@ -43,7 +63,11 @@ export default function Projects() {
       setEditingProject(null)
       resetForm()
       loadData()
-    } catch (err) { alert(err.response?.data?.message || 'Failed to save') }
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleEdit = (project) => {
@@ -52,8 +76,8 @@ export default function Projects() {
       name: project.name,
       description: project.description || '',
       status: project.status || 'ACTIVE',
-      startDate: project.startDate ? project.startDate.split('T')[0] : '',
-      endDate: project.endDate ? project.endDate.split('T')[0] : ''
+      startDate: project.startDate || '',
+      endDate: project.endDate || ''
     })
     setShowModal(true)
   }
@@ -69,7 +93,7 @@ export default function Projects() {
 
   const resetForm = () => setFormData({ name: '', description: '', status: 'ACTIVE', startDate: '', endDate: '' })
 
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+  const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
 
@@ -108,19 +132,10 @@ export default function Projects() {
                 <p className="text-lg font-bold text-green-600">{project.taskCount || 0}</p>
                 <p className="text-xs text-gray-500">Tasks</p>
               </div>
-              <div className="bg-yellow-50 p-2 rounded text-center">
-                <p className="text-lg font-bold text-yellow-600">{project.shiftCount || 0}</p>
-                <p className="text-xs text-gray-500">Shifts</p>
-              </div>
-              <div className="bg-purple-50 p-2 rounded text-center">
-                <p className="text-lg font-bold text-purple-600">{project.checklistCount || 0}</p>
-                <p className="text-xs text-gray-500">Checklists</p>
-              </div>
             </div>
             <div className="text-sm text-gray-500 mb-2">
-              {project.startDate && <p>Started: {new Date(project.startDate).toLocaleDateString()}</p>}
-              {project.endDate && <p>Due: {new Date(project.endDate).toLocaleDateString()}</p>}
-              <p>Handovers: {project.handoverCount || 0}</p>
+              {project.startDate && <p>Started: {project.startDate}</p>}
+              {project.endDate && <p>Due: {project.endDate}</p>}
             </div>
             {isManager && (
               <div className="flex gap-2">
@@ -137,6 +152,7 @@ export default function Projects() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-4">{editingProject ? 'Edit' : 'Create'} Project</h3>
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <input type="text" placeholder="Project Name" className="input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
               <textarea placeholder="Description" className="input" rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
@@ -146,12 +162,18 @@ export default function Projects() {
                 <option value="COMPLETED">Completed</option>
               </select>
               <div className="grid grid-cols-2 gap-4">
-                <input type="date" className="input" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} />
-                <input type="date" className="input" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                  <input type="date" className="input" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} max={formData.endDate || undefined} />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                  <input type="date" className="input" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} min={formData.startDate || undefined} />
+                </div>
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">{editingProject ? 'Update' : 'Create'}</button>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Saving...' : (editingProject ? 'Update' : 'Create')}</button>
+                <button type="button" onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
               </div>
             </form>
           </div>

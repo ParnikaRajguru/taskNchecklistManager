@@ -79,7 +79,7 @@ export default function Handovers() {
     return colors[priority] || 'badge-gray'
   }
 
-  const isManager = ['SUPER_ADMIN', 'PROJECT_MANAGER', 'MANAGER'].includes(user?.role)
+  const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
 

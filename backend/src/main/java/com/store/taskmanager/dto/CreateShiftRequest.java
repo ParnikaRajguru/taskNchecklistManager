@@ -9,11 +9,10 @@ import java.time.LocalTime;
 public class CreateShiftRequest {
     @NotBlank(message = "Shift name is required")
     private String name;
-    
+
     private ShiftType shiftType;
     private LocalTime startTime;
     private LocalTime endTime;
     private Boolean active;
-    private Long projectId;
     private Long teamId;
 }

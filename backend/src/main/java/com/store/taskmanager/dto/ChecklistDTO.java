@@ -9,14 +9,10 @@ public class ChecklistDTO {
     private Long id;
     private String title;
     private String description;
-    private Long projectId;
-    private String projectName;
     private Long shiftId;
     private String shiftName;
     private Long teamId;
     private String teamName;
-    private Long taskId;
-    private String taskTitle;
     private Long createdById;
     private String createdByName;
     private List<ChecklistItemDTO> items;

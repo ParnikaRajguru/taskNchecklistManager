@@ -6,9 +6,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "tasks")
@@ -49,20 +48,7 @@ public class Task {
     @JoinColumn(name = "created_by_id")
     private User createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shift_id")
-    private Shift shift;
-
-    private LocalDateTime dueDate;
-
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Note> notes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
-    private List<ChecklistItem> checklistItems = new ArrayList<>();
-
-    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
-    private List<Checklist> checklists = new ArrayList<>();
+    private LocalDate dueDate;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

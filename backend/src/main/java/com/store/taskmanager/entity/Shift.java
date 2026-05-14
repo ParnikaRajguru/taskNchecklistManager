@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "shifts")
@@ -33,27 +31,8 @@ public class Shift {
     private boolean active = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
-    private Project project;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private Team team;
-
-    @OneToMany(mappedBy = "shift", fetch = FetchType.LAZY)
-    private List<User> users = new ArrayList<>();
-
-    @OneToMany(mappedBy = "shift", fetch = FetchType.LAZY)
-    private List<Checklist> checklists = new ArrayList<>();
-
-    @OneToMany(mappedBy = "shift", fetch = FetchType.LAZY)
-    private List<Task> tasks = new ArrayList<>();
-
-    @OneToMany(mappedBy = "fromShift", fetch = FetchType.LAZY)
-    private List<Handover> fromHandovers = new ArrayList<>();
-
-    @OneToMany(mappedBy = "toShift", fetch = FetchType.LAZY)
-    private List<Handover> toHandovers = new ArrayList<>();
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
