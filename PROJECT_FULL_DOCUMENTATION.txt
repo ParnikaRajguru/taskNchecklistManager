@@ -1,0 +1,2296 @@
+================================================================================
+                   STORE TASK & CHECKLIST MANAGER
+                 COMPLETE PROJECT DOCUMENTATION
+================================================================================
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1.  PROJECT OVERVIEW
+2.  TECH STACK
+3.  PROJECT STRUCTURE
+4.  FRONTEND EXPLANATION
+5.  BACKEND EXPLANATION
+6.  DATABASE DESIGN
+7.  COMPLETE WORKFLOW
+8.  ROLE-BASED ACCESS CONTROL
+9.  API DOCUMENTATION
+10. FILE CONNECTION MAPPING
+11. AUTHENTICATION & SECURITY
+12. IMPORTANT LEARNING NOTES
+13. COMMON ISSUES & DEBUGGING
+14. FINAL PROJECT SUMMARY
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+What the project is:
+This is a full-stack web application called "Store Task & Checklist Manager"
+built with Spring Boot (Java) on the backend and React (JavaScript) on the
+frontend. It is an internal workflow management system designed for retail
+store operations.
+
+Main goal:
+To help store teams manage their daily tasks, checklists, shift handovers,
+projects, and team assignments in one centralized platform. It replaces
+paper-based or spreadsheet-based tracking with a digital system.
+
+Main features:
+- User authentication with JWT tokens
+- Role-based access control (6 roles)
+- Task management (CRUD, status tracking, priority)
+- Project management
+- Team management with member assignment
+- Shift management
+- Checklist creation with trackable items
+- Shift handover management with resolve/acknowledge flow
+- Dashboard with statistics and KPIs
+- Note taking on tasks, checklist items, and handovers
+- Audit logging for all actions
+- Password management (change/reset)
+
+Problem it solves:
+Retail stores often have multiple shifts, teams, and a large number of daily
+operational tasks. Without a centralized system, tasks get lost, handovers
+are missed, and there is no accountability. This system ensures every task
+is tracked, every handover is acknowledged, and every shift knows what needs
+to be done.
+
+Intended users:
+- SUPER_ADMIN: Full system access, can manage everything
+- MANAGER: Can manage projects, teams, shifts, users, tasks
+- TEAM_LEAD: Can manage tasks within their team, view team members
+- DEVELOPER: Can create checklists, view tasks, participate in workflow
+- TESTER: Can create checklists, view tasks, participate in workflow
+- STAFF: Can create checklists, complete checklist items, view tasks
+
+Overall workflow:
+1. Admin creates users with specific roles and assigns them to teams/shifts.
+2. Managers create projects and teams, assign team leads and members.
+3. Team leads/managers create tasks and assign them to team members.
+4. Any user can create checklists with items for their shift/team.
+5. Users complete checklist items and mark tasks as they progress.
+6. During shift changes, users create handovers documenting completed work,
+   pending work, and blockers for the next shift.
+7. The receiving shift can resolve and acknowledge handovers.
+8. The dashboard provides a real-time overview of all activities.
+
+================================================================================
+2. TECH STACK
+================================================================================
+
+FRONTEND:
+---------
+React (v18.2.0):
+  - A modern JavaScript library for building user interfaces.
+  - Chosen for its component-based architecture, reusability, and vast ecosystem.
+
+Vite (v5.0.8):
+  - A fast build tool and development server.
+  - Chosen over Create React App because it provides instant server start,
+    fast hot module replacement (HMR), and optimized production builds.
+
+Tailwind CSS (v3.4.0):
+  - A utility-first CSS framework.
+  - Chosen because it allows rapid UI development without writing custom CSS,
+    provides consistent design, and keeps the bundle small.
+
+Axios (v1.6.2):
+  - A promise-based HTTP client for the browser.
+  - Chosen for making API requests with ease. Supports interceptors for
+    automatic JWT token attachment and error handling.
+
+React Router DOM (v6.21.0):
+  - Declarative routing for React applications.
+  - Chosen for handling navigation between pages, protected routes, and
+    nested layouts.
+
+BACKEND:
+--------
+Spring Boot (v3.2.0):
+  - A Java framework for building production-ready web applications.
+  - Chosen for its auto-configuration, embedded server, and enterprise-grade
+    capabilities. Provides REST API support out of the box.
+
+Spring Security:
+  - A powerful authentication and authorization framework.
+  - Chosen to implement JWT-based authentication, role-based access control,
+    and secure API endpoints.
+
+JWT (JSON Web Tokens) via jjwt library:
+  - A compact, URL-safe token format for authentication.
+  - Chosen because it allows stateless authentication - no session storage
+    needed. Tokens contain all user information needed for authorization.
+
+JPA / Hibernate:
+  - Java Persistence API with Hibernate as the ORM provider.
+  - Chosen for object-relational mapping - it lets us work with database
+    tables as Java objects, auto-generates SQL, and manages relationships.
+
+Spring Boot Starter Validation:
+  - Provides Bean Validation API (Jakarta Validation).
+  - Chosen to validate incoming request data with annotations like @NotBlank,
+    @Email, etc.
+
+Lombok:
+  - A Java library that reduces boilerplate code.
+  - Chosen to auto-generate getters, setters, constructors via annotations
+    like @Data, @RequiredArgsConstructor.
+
+DATABASE:
+--------
+PostgreSQL:
+  - A powerful, open-source relational database.
+  - Chosen for its reliability, support for complex queries, ACID compliance,
+    and excellent JSON support. Well-suited for enterprise applications.
+
+================================================================================
+3. PROJECT STRUCTURE
+================================================================================
+
+FRONTEND STRUCTURE:
+-------------------
+frontend/
+  index.html              - HTML entry point with root div for React
+  package.json            - NPM dependencies and scripts
+  vite.config.js          - Vite configuration (port, API proxy)
+  tailwind.config.js      - Tailwind CSS content paths and theme
+  postcss.config.js       - PostCSS plugins (Tailwind, Autoprefixer)
+
+  src/
+    main.jsx              - React DOM rendering entry point
+    App.jsx               - Main app component with routing
+    index.css             - Global styles, Tailwind directives, custom classes
+
+    components/
+      Layout.jsx          - Sidebar + header layout with navigation
+      ProtectedRoute.jsx  - Authentication guard for protected pages
+
+    context/
+      AuthContext.jsx     - Authentication state management (login/logout/user)
+
+    pages/
+      Login.jsx           - Login page with username/password form
+      Dashboard.jsx       - Dashboard with stats, tasks, handovers
+      Users.jsx           - User management (create/edit/reset password)
+      Teams.jsx           - Team management (create/edit/delete with members)
+      Projects.jsx        - Project management (create/edit/delete)
+      Tasks.jsx           - Task management (create/edit/delete with details)
+      Shifts.jsx          - Shift management (create/edit/delete)
+      Checklists.jsx      - Checklist management with items and completion
+      Handovers.jsx       - Shift handover management with details view
+
+    services/
+      api.js              - Axios instance with interceptors and all API calls
+
+BACKEND STRUCTURE:
+------------------
+backend/
+  pom.xml                 - Maven project configuration with all dependencies
+
+  src/main/java/com/store/taskmanager/
+    TaskManagerApplication.java    - Spring Boot main class
+
+    config/
+      DataInitializer.java         - Seed data initializer on startup
+      SecurityConfig.java          - Spring Security configuration
+
+    controller/
+      AuthController.java          - Login, change password, create user, me
+      UserController.java          - User CRUD and profile management
+      TeamController.java          - Team CRUD and queries
+      ProjectController.java       - Project CRUD and queries
+      TaskController.java          - Task CRUD and filtered queries
+      ShiftController.java         - Shift CRUD and queries
+      ChecklistController.java     - Checklist CRUD and item completion
+      HandoverController.java      - Handover CRUD, resolve, acknowledge
+      NoteController.java          - Note CRUD for tasks/items/handovers
+      DashboardController.java     - Dashboard data aggregation
+      AuditController.java         - Audit log queries
+
+    dto/
+      LoginRequest.java            - Login credentials
+      LoginResponse.java           - JWT token + user info response
+      UserDTO.java                 - User data transfer object
+      CreateUserRequest.java       - New user creation request
+      UpdateUserRequest.java       - User update request
+      ChangePasswordRequest.java   - Password change request
+      TeamDTO.java                 - Team data with members/counts
+      CreateTeamRequest.java       - Team creation request
+      ProjectDTO.java              - Project data with counts
+      CreateProjectRequest.java    - Project creation request
+      TaskDTO.java                 - Task data with relations
+      CreateTaskRequest.java       - Task creation request
+      UpdateTaskRequest.java       - Task update request
+      ShiftDTO.java                - Shift data
+      CreateShiftRequest.java      - Shift creation request
+      ChecklistDTO.java            - Checklist with items and progress
+      ChecklistItemDTO.java        - Checklist item data
+      CreateChecklistRequest.java  - Checklist creation request
+      CreateChecklistItemRequest.java - Checklist item creation
+      HandoverDTO.java             - Handover with all details
+      CreateHandoverRequest.java   - Handover creation request
+      NoteDTO.java                 - Note data
+      CreateNoteRequest.java       - Note creation request
+      DashboardDTO.java            - Dashboard aggregation data
+      AuditLogDTO.java             - Audit log entry
+
+    entity/
+      User.java                    - User entity with team/shift relations
+      Team.java                    - Team entity with project/manager/lead
+      Project.java                 - Project entity with dates and status
+      Task.java                    - Task entity with all relations
+      Shift.java                   - Shift entity with type and times
+      Checklist.java               - Checklist entity with items
+      ChecklistItem.java           - Checklist item with completion status
+      Handover.java                - Handover entity with shifts/teams
+      Note.java                    - Note entity (polymorphic to task/item/handover)
+      AuditLog.java                - Audit log entity
+
+    entity/enums/
+      Role.java                    - SUPER_ADMIN, MANAGER, TEAM_LEAD, DEVELOPER, TESTER, STAFF
+      ShiftType.java               - MORNING, EVENING, NIGHT
+      TaskStatus.java              - TODO, IN_PROGRESS, IN_REVIEW, TESTING, COMPLETED, BLOCKED
+      TaskPriority.java            - LOW, MEDIUM, HIGH
+      HandoverPriority.java        - LOW, MEDIUM, HIGH, CRITICAL
+
+    exception/
+      BadRequestException.java     - 400 Bad Request exception
+      ResourceNotFoundException.java - 404 Not Found exception
+      GlobalExceptionHandler.java  - Global exception handler for all errors
+
+    repository/
+      UserRepository.java          - User queries (by username, role, team, shift)
+      TeamRepository.java          - Team queries (by project, team lead)
+      ProjectRepository.java       - Project queries (by status)
+      TaskRepository.java          - Task queries (by project, team, user, due date, status)
+      ShiftRepository.java         - Shift queries (by type, active)
+      ChecklistRepository.java     - Checklist queries (by shift, team, delayed)
+      ChecklistItemRepository.java - Item queries (by checklist, user, pending by shift)
+      HandoverRepository.java      - Handover queries (by shift, team, unresolved, unacknowledged)
+      NoteRepository.java          - Note queries (by task, checklist item, handover)
+      AuditLogRepository.java      - Audit log queries (by user, entity, recent)
+
+    security/
+      CustomUserDetailsService.java  - Loads user from DB for Spring Security
+      JwtTokenProvider.java          - JWT token generation and validation
+      JwtAuthenticationFilter.java   - Extracts JWT from requests and authenticates
+
+    service/
+      AuthService.java             - Login, password change, user creation
+      UserService.java             - User CRUD with team/shift mapping
+      TeamService.java             - Team CRUD with member assignment
+      ProjectService.java          - Project CRUD with date validation
+      TaskService.java             - Task CRUD with status change tracking
+      ShiftService.java            - Shift CRUD with time validation
+      ChecklistService.java        - Checklist CRUD with item completion
+      HandoverService.java         - Handover CRUD with resolve/acknowledge
+      NoteService.java             - Note CRUD for tasks/items/handovers
+      DashboardService.java        - Dashboard data aggregation
+      AuditLogService.java         - Audit log creation and queries
+
+  src/main/resources/
+    application.properties         - Database, JWT, server configuration
+
+  src/test/java/                   - (empty - no tests yet)
+
+DATABASE STRUCTURE:
+-------------------
+database/
+  init.sql                        - Database setup guide (tables auto-created)
+  sample-data.sql                 - Optional manual seed data script
+  load-sample-data.bat            - Windows batch script to load sample data
+
+================================================================================
+4. FRONTEND EXPLANATION
+================================================================================
+
+--- FILE: src/main.jsx ---
+Purpose: Entry point of the React application. Renders the App component
+into the DOM element with id "root".
+What it does: Calls ReactDOM.createRoot to mount the App component inside
+React.StrictMode (which helps catch bugs in development).
+
+--- FILE: src/App.jsx ---
+Purpose: Root component that sets up routing and authentication context.
+Main Logic: Wraps everything in AuthProvider (for auth state), then
+BrowserRouter. Defines routes:
+  - /login  → Login page (public)
+  - /       → ProtectedRoute wrapping Layout (authenticated users only)
+    - /dashboard  → Dashboard page
+    - /users      → Users page
+    - /teams      → Teams page
+    - /projects   → Projects page
+    - /tasks      → Tasks page
+    - /shifts     → Shifts page
+    - /checklists → Checklists page
+    - /handovers  → Handovers page
+  - Default redirect from / to /dashboard
+Routing: Uses react-router-dom v6 with nested routes. Layout component
+contains sidebar and renders child pages via <Outlet />.
+Role-based rendering: Not at this level - individual pages handle their own
+role checks.
+Connected Components: Layout, ProtectedRoute, Login, Dashboard, Users,
+Teams, Projects, Tasks, Shifts, Checklists, Handovers.
+
+--- FILE: src/index.css ---
+Purpose: Global CSS styles.
+What it defines:
+  - Tailwind directives (@tailwind base, components, utilities)
+  - Base reset (margin, padding, box-sizing)
+  - Body styles (font-family, background color)
+  - Utility classes: .sidebar-link, .btn, .btn-primary, .btn-secondary,
+    .btn-danger, .input, .card, .table, .badge with color variants
+    (.badge-blue, .badge-green, .badge-yellow, .badge-red, .badge-gray,
+     .badge-purple, .badge-orange)
+Connected to: All pages use these CSS classes for consistent styling.
+
+--- FILE: src/services/api.js ---
+Purpose: Central API service module. Creates an Axios instance configured
+to communicate with the backend at '/api' (proxied via Vite).
+Main Logic:
+  - Creates axios instance with baseURL '/api' and JSON content type
+  - Request interceptor: Attaches JWT token from localStorage as
+    'Authorization: Bearer <token>' header to every request
+  - Response interceptor: On 401 error, clears localStorage and redirects
+    to /login page
+Exports service objects for each API domain:
+  - authService: login, changePassword, createUser, getCurrentUser
+  - userService: getAll, getById, getByTeam, getByRole, update, resetPassword,
+    getProfile, updateProfile, changePassword
+  - teamService: getAll, getById, getByProject, getMyTeam, create, update, delete
+  - projectService: getAll, getById, getByStatus, create, update, delete
+  - taskService: getAll, getById, getByProject, getByTeam, getByUser,
+    getMyTasks, getMyPending, getOverdue, create, update, delete
+  - shiftService: getAll, getById, getActive, create, update, delete
+  - checklistService: getAll, getById, getByShift, getByTeam, create,
+    completeItem, uncompleteItem, delete
+  - handoverService: getAll, getById, getByShift, getUnresolved, getByTeam,
+    getUnacknowledged, create, resolve, acknowledge, delete
+  - noteService: getByTask, getByChecklistItem, getByHandover, create, delete
+  - dashboardService: getData
+  - auditService: getAll, getRecent, getByUser
+Connected Backend API: All endpoints under /api/*. Each service function maps
+to a backend REST endpoint.
+
+--- FILE: src/context/AuthContext.jsx ---
+Purpose: Provides authentication state management across the entire app.
+State handling:
+  - user: Current user object (null when not logged in)
+  - loading: Boolean indicating if auth state is being restored from localStorage
+Main functions:
+  - login(username, password): Calls authService.login, stores token and user
+    data in localStorage, sets user state.
+  - logout(): Clears localStorage, sets user to null.
+  - changePassword(data): Calls authService.changePassword, updates
+    user.firstLogin to false in localStorage.
+  - isAuthenticated: Derived boolean (!!user)
+  - On mount: Restores token and user from localStorage if they exist.
+Connected Components: Used by all components via useAuth() hook.
+
+--- FILE: src/components/ProtectedRoute.jsx ---
+Purpose: Guards routes that require authentication.
+Main Logic:
+  - If loading → shows "Loading..." screen
+  - If not authenticated → redirects to /login
+  - If authenticated → renders child components
+Connected Components: Wraps Layout in App.jsx.
+
+--- FILE: src/components/Layout.jsx ---
+Purpose: Main layout with sidebar navigation, header, and content area.
+Main Logic:
+  - Sidebar: Shows navigation links with icons. Conditionally shows Users
+    (managers + team leads), Shifts (hidden for team leads).
+  - Nav items: Dashboard, Tasks, Projects, Teams, Users, Shifts, Checklists,
+    Handovers.
+  - Header: Shows welcome message with user's first name, "Change Password"
+    button.
+  - Content: Renders child pages via <Outlet />.
+  - PasswordModal: A modal component for password change with fields:
+    currentPassword, newPassword, confirmPassword. Validates match before
+    submission.
+  - User info panel: Shows initials avatar, full name, role.
+  - Logout button clears auth and navigates to /login.
+State handling:
+  - showPasswordModal: Controls password modal visibility
+Role-based rendering:
+  - isManager = SUPER_ADMIN or MANAGER (can see Users)
+  - TEAM_LEAD can also see Users but cannot see Shifts
+Connected Components: All page components.
+
+--- FILE: src/pages/Login.jsx ---
+Purpose: User login page.
+Main Logic: Simple form with username and password fields.
+  - On submit: Calls login() from AuthContext
+  - On success: Navigates to /dashboard
+  - On error: Shows error message "Invalid username or password"
+State handling:
+  - username, password: Form field values
+  - error: Error message string
+  - loading: Boolean for submit button state
+API Calls: login() from AuthContext → authService.login()
+Connected Components: Uses useAuth() hook.
+Workflow: User enters credentials → submit → backend validates →
+JWT returned → stored in localStorage → redirect to dashboard.
+
+--- FILE: src/pages/Dashboard.jsx ---
+Purpose: Main dashboard showing key metrics and recent activity.
+Main Logic:
+  - Loads dashboard data from backend on mount
+  - Displays 8 stat cards: Total Tasks, Pending, Completed, Overdue,
+    Blocked, Completed Today, Pending Checklist Items, Delayed Checklists
+  - Shows "Recent Tasks" section (last 5 tasks)
+  - Shows "Pending Handovers" section
+  - Shows "Pending Checklist Items" section
+  - For managers: Shows additional stats (Pending Approvals, Missed Handovers)
+State handling:
+  - data: DashboardDTO from backend
+  - loading: Boolean
+Role-based rendering: isManager flag controls additional sections.
+API Calls: dashboardService.getData() → GET /api/dashboard
+Connected Backend API: DashboardController → DashboardService
+Connected Components: None directly. Called from Layout.
+
+--- FILE: src/pages/Users.jsx ---
+Purpose: User management page - view, create, edit users, reset passwords.
+Main Logic:
+  - Loads all users, teams, and shifts
+  - Shows table with columns: Name, Username, Email, Role, Team, Shift, Actions
+  - "Add User" button opens modal with form:
+    Username, Password, First Name, Last Name, Email, Phone, Role, Team
+  - Edit button opens modal to update user details including role and shift
+  - Reset Password button resets user password to "password123"
+State handling:
+  - users, teams, shifts: Lists from backend
+  - showModal, showUserModal: Control modal visibility
+  - formData, createUserData: Form state
+  - submitting, error: Submission state
+API Calls:
+  - userService.getAll(), teamService.getAll(), shiftService.getAll()
+  - authService.createUser(), userService.update(), userService.resetPassword()
+Role-based rendering: Only SUPER_ADMIN, MANAGER, TEAM_LEAD can view. If
+unauthorized, shows "Access Restricted" message.
+Connected Components: None directly.
+Workflow: Manager opens page → loads all data → can add/edit/reset users →
+changes saved to backend.
+
+--- FILE: src/pages/Teams.jsx ---
+Purpose: Team management - create, edit, delete teams with member assignment.
+Main Logic:
+  - Loads all teams, projects, and users
+  - Displays teams as cards with: name, description, project, manager,
+    team lead, member count, task count, member list
+  - Add/Edit modal with fields:
+    Team Name, Description, Project, Manager (dropdown of MANAGERs),
+    Team Lead (dropdown of TEAM_LEADs), Members (checkboxes of STAFF/DEVELOPER/TESTER)
+  - Prevents same person from being manager and team lead
+  - Prevents manager/lead from being added as regular members
+State handling:
+  - teams, projects, users: Lists from backend
+  - editingTeam: Tracking edit mode
+  - formData: name, description, projectId, managerId, teamLeadId, memberIds
+  - Toggle function for member selection
+API Calls:
+  - teamService.getAll(), projectService.getAll(), userService.getAll()
+  - teamService.create(), teamService.update(), teamService.delete()
+Role-based rendering: Only SUPER_ADMIN and MANAGER can create/edit/delete.
+Connected Components: None directly.
+Workflow: Manager creates team → selects project → assigns manager →
+assigns team lead → checks members → saves to backend.
+
+--- FILE: src/pages/Projects.jsx ---
+Purpose: Project management - create, edit, delete projects.
+Main Logic:
+  - Loads all projects
+  - Displays as cards with: name, description, status badge, team count,
+    task count, start date, end date
+  - Add/Edit modal with fields:
+    Name, Description, Status (ACTIVE/ON_HOLD/COMPLETED), Start Date, End Date
+  - Validates that end date is after start date
+State handling:
+  - projects: List from backend
+  - editingProject: Tracking edit mode
+  - formData: name, description, status, startDate, endDate
+  - error, submitting: Form state
+API Calls:
+  - projectService.getAll(), create(), update(), delete()
+Role-based rendering: Only SUPER_ADMIN and MANAGER can create/edit/delete.
+Connected Components: None directly.
+
+--- FILE: src/pages/Tasks.jsx ---
+Purpose: Task management - create, edit, delete tasks with full details.
+Main Logic:
+  - Loads all tasks, projects, teams, and users
+  - Displays table with: Title, Project, Team, Assigned To, Status,
+    Priority, Due Date, Actions
+  - Status colors: TODO=blue, IN_PROGRESS=yellow, IN_REVIEW=purple,
+    TESTING=orange, COMPLETED=green, BLOCKED=red
+  - Priority colors: LOW=gray, MEDIUM=blue, HIGH=red
+  - Add/Edit modal with fields:
+    Title, Description, Status, Priority, Project, Team, Assigned To, Due Date
+State handling:
+  - tasks, projects, teams, users: Lists from backend
+  - editingTask: Tracking edit mode
+  - formData: title, description, status, priority, projectId, teamId,
+    assignedToId, dueDate
+API Calls:
+  - taskService.getAll(), projectService.getAll(), teamService.getAll(),
+    userService.getAll()
+  - taskService.create(), update(), delete()
+Role-based rendering: SUPER_ADMIN, MANAGER, TEAM_LEAD can create/edit/delete.
+Connected Components: None directly.
+Workflow: Lead/Manager creates task → assigns to user → user sees it →
+updates status as work progresses.
+
+--- FILE: src/pages/Shifts.jsx ---
+Purpose: Shift management - create, edit, delete shifts.
+Main Logic:
+  - Loads all shifts and teams
+  - Displays as cards with: name, shift type badge (MORNING=yellow,
+    EVENING=blue, NIGHT=gray), time range, team
+  - Add/Edit modal with fields:
+    Name, Team, Shift Type (MORNING/EVENING/NIGHT), Start Time, End Time,
+    Active checkbox
+  - Validates end time is after start time
+State handling:
+  - shifts, teams: Lists from backend
+  - editingShift: Tracking edit mode
+  - formData: name, shiftType, startTime, endTime, active, teamId
+API Calls:
+  - shiftService.getAll(), teamService.getAll()
+  - shiftService.create(), update(), delete()
+Role-based rendering: Only SUPER_ADMIN and MANAGER can create/edit/delete.
+Connected Components: None directly.
+
+--- FILE: src/pages/Checklists.jsx ---
+Purpose: Checklist management - create checklists with items, complete items.
+Main Logic:
+  - Loads all checklists, shifts, and teams
+  - Displays checklists as expandable cards with:
+    Title, description, shift/team badges, progress bar with percentage,
+    list of items with checkboxes
+  - Items show: checkbox, title (strikethrough when completed), description,
+    assigned user name badge
+  - "Create Checklist" button opens modal with:
+    Title, Description, Shift, Team, dynamic item list
+  - Item sub-form: title input, assignee dropdown, Add Item button
+  - Team selection triggers loading of team members for assignment
+  - Click checkbox on item to complete/uncomplete
+  - Progress percentage calculated from completed/total items
+State handling:
+  - checklists, shifts, teams: Lists from backend
+  - teamUsers: Users in selected team (loaded when teamId changes)
+  - formData: title, description, shiftId, teamId, items[] (array of items)
+  - newItem: { title, description, assignedToId } for adding items
+Role-based rendering:
+  - canCreate: All roles can create checklists
+  - canDelete: Only SUPER_ADMIN and MANAGER can delete
+API Calls:
+  - checklistService.getAll(), shiftService.getAll(), teamService.getAll()
+  - checklistService.create(), delete(), completeItem(), uncompleteItem()
+Workflow: Any user creates checklist → adds items → assigns to team members →
+members check items as completed → progress updates automatically.
+
+--- FILE: src/pages/Handovers.jsx ---
+Purpose: Shift handover management - create, view, resolve, acknowledge.
+Main Logic:
+  - Loads all handovers, shifts, and teams
+  - Displays as cards with: title, priority badge, from→to shift info,
+    team assignment, resolved/pending status, acknowledge badge
+  - Action buttons: View (details modal), Resolve, Acknowledge, Delete
+  - "Create Handover" modal with fields:
+    Title, Priority (LOW/MEDIUM/HIGH/CRITICAL), From Shift, To Shift,
+    Assigned Team, Receiving Team, Completed Work, Pending Work,
+    Blockers, Next Shift Instructions (all textareas)
+  - Details modal shows all handover information
+State handling:
+  - handovers, shifts, teams: Lists from backend
+  - showModal, showDetails: Modal visibility control
+  - formData: All handover fields
+Role-based rendering: isManager = SUPER_ADMIN or MANAGER can delete.
+Everyone can create, resolve, and acknowledge.
+API Calls:
+  - handoverService.getAll(), shiftService.getAll(), teamService.getAll()
+  - handoverService.create(), resolve(), acknowledge(), delete()
+Workflow: Shift worker creates handover at end of shift → next shift reviews →
+resolves handover → acknowledges receipt.
+
+================================================================================
+5. BACKEND EXPLANATION
+================================================================================
+
+--- FILE: TaskManagerApplication.java ---
+Purpose: Entry point for the Spring Boot application.
+Main method: SpringApplication.run() starts the embedded Tomcat server
+and auto-configures all Spring beans.
+
+--- FILE: config/DataInitializer.java ---
+Purpose: Seeds the database with initial data on application startup.
+Implements CommandLineRunner to execute after application context loads.
+Main methods:
+  - run(): Orchestrates initialization of all seed data
+  - initializeShifts(): Creates Morning (6-14), Evening (14-22), Night (22-6)
+  - initializeDefaultAdmin(): Creates admin/admin123 with SUPER_ADMIN role
+  - initializeSampleUsers(): Creates 8 users with various roles
+  - initializeProjects(): Creates 3 projects
+  - initializeTeams(): Creates 4 teams with member assignments
+  - initializeTasks(): Creates 8 tasks with various statuses
+  - initializeChecklists(): Creates 4 checklists with 8 items
+  - initializeHandovers(): Creates 3 handovers
+  - allSeedDataExists(): Checks if data already exists (skips if so)
+Relationships: References all entities and repositories. Assigns users to
+teams and shifts, creates many-to-many relationships via direct DB writes.
+Database interaction: Uses Spring Data JPA repositories to save entities.
+
+--- FILE: config/SecurityConfig.java ---
+Purpose: Configures Spring Security for the application.
+Main beans:
+  - PasswordEncoder: BCryptPasswordEncoder for hashing passwords
+  - DaoAuthenticationProvider: Links UserDetailsService with PasswordEncoder
+  - AuthenticationManager: Handles authentication requests
+  - CorsConfigurationSource: Allows requests from localhost:5173 and :3000
+  - SecurityFilterChain: Configures HTTP security:
+    * Disables CSRF (stateless API)
+    * Sets session management to stateless
+    * Permits /api/auth/** without authentication
+    * Permits OPTIONS requests (CORS preflight)
+    * All other requests require authentication
+    * Adds JwtAuthenticationFilter before UsernamePasswordAuthenticationFilter
+Security handling: Stateless JWT-based authentication. No sessions.
+
+--- FILE: security/CustomUserDetailsService.java ---
+Purpose: Loads user details from database for Spring Security authentication.
+Main method:
+  - loadUserByUsername(): Finds user by username, returns Spring Security
+    UserDetails with username, password, and ROLE_ authority.
+Relationships: Uses UserRepository to find users.
+
+--- FILE: security/JwtTokenProvider.java ---
+Purpose: Generates and validates JWT tokens.
+Main methods:
+  - init(): Creates HMAC-SHA key from the secret (pads to 32 bytes if needed)
+  - generateToken(): Creates JWT with username as subject, issue/expiry dates
+  - getUsernameFromToken(): Extracts username from JWT claims
+  - validateToken(): Parses and verifies JWT signature and expiration
+Configuration: JWT secret and expiration (24 hours) from application.properties
+
+--- FILE: security/JwtAuthenticationFilter.java ---
+Purpose: Intercepts every HTTP request to validate JWT token.
+Main method:
+  - doFilterInternal(): Extracts Bearer token from Authorization header,
+    validates it, loads user details, and sets authentication in
+    SecurityContextHolder.
+  - getJwtFromRequest(): Parses "Bearer <token>" format from header.
+Flow: Request → JwtAuthenticationFilter → validate token → set auth context →
+request proceeds to controller.
+
+--- FILE: entity/User.java ---
+Entity mapping to "users" table.
+Columns: id (PK), username (unique), password, firstName, lastName, email
+(unique), phone, status (default ACTIVE), role (Enum STRING), firstLogin
+(default true), createdAt, updatedAt.
+Relationships:
+  - @ManyToOne to Team (team_id FK) - Many users belong to one team
+  - @ManyToOne to Shift (shift_id FK) - Many users belong to one shift
+Methods: getFullName() returns "firstName lastName"
+Lifecycle: @PrePersist and @PreUpdate auto-set timestamps.
+
+--- FILE: entity/Team.java ---
+Entity mapping to "teams" table.
+Columns: id (PK), name, description, createdAt, updatedAt.
+Relationships:
+  - @ManyToOne to Project (project_id FK) - Many teams belong to one project
+  - @ManyToOne to User as teamLead (team_lead_id FK)
+  - @ManyToOne to User as manager (manager_id FK)
+  - @OneToMany to User members (mappedBy team) - One team has many members
+  - @OneToMany to Task (mappedBy team) - One team has many tasks
+  - @OneToMany to Shift (mappedBy team) - One team has many shifts
+
+--- FILE: entity/Project.java ---
+Entity mapping to "projects" table.
+Columns: id (PK), name, description, status, startDate (LocalDate),
+endDate (LocalDate), createdAt, updatedAt.
+Relationships:
+  - @OneToMany to Team (mappedBy project) - One project has many teams
+  - @OneToMany to Task (mappedBy project) - One project has many tasks
+
+--- FILE: entity/Task.java ---
+Entity mapping to "tasks" table.
+Columns: id (PK), title, description, status (TaskStatus enum), priority
+(TaskPriority enum), dueDate (LocalDate), createdAt, updatedAt.
+Relationships:
+  - @ManyToOne to Project (project_id FK)
+  - @ManyToOne to Team (team_id FK)
+  - @ManyToOne to User as assignedTo (assigned_to_id FK)
+  - @ManyToOne to User as createdBy (created_by_id FK)
+
+--- FILE: entity/Shift.java ---
+Entity mapping to "shifts" table.
+Columns: id (PK), name, shiftType (ShiftType enum), startTime (LocalTime),
+endTime (LocalTime), active (boolean, default true), createdAt, updatedAt.
+Relationships:
+  - @ManyToOne to Team (team_id FK)
+
+--- FILE: entity/Checklist.java ---
+Entity mapping to "checklists" table.
+Columns: id (PK), title, description, createdAt, updatedAt.
+Relationships:
+  - @ManyToOne to Shift (shift_id FK)
+  - @ManyToOne to Team (team_id FK)
+  - @ManyToOne to User as createdBy (created_by_id FK)
+  - @OneToMany to ChecklistItem (mappedBy checklist, cascade ALL, orphanRemoval)
+    - One checklist has many items, cascading saves and deletes.
+
+--- FILE: entity/ChecklistItem.java ---
+Entity mapping to "checklist_items" table.
+Columns: id (PK), title, description, completed (default false),
+completedAt, createdAt, updatedAt.
+Relationships:
+  - @ManyToOne to Checklist (checklist_id FK)
+  - @ManyToOne to User as assignedTo (assigned_to_id FK)
+  - @ManyToOne to Task (task_id FK) - Optional link to a task
+  - @ManyToOne to User as completedBy (completed_by_id FK)
+
+--- FILE: entity/Handover.java ---
+Entity mapping to "handovers" table.
+Columns: id (PK), title, completedWork (TEXT), pendingWork (TEXT),
+blockers (TEXT), nextShiftInstructions (TEXT), priority (HandoverPriority),
+resolved (boolean), acknowledged (boolean), acknowledgedAt, createdAt,
+updatedAt.
+Relationships:
+  - @ManyToOne to Shift as fromShift (from_shift_id FK)
+  - @ManyToOne to Shift as toShift (to_shift_id FK)
+  - @ManyToOne to Team as assignedTeam (assigned_team_id FK)
+  - @ManyToOne to Team as receivingTeam (receiving_team_id FK)
+  - @ManyToOne to Project (project_id FK)
+  - @ManyToOne to User as createdBy (created_by_id FK)
+  - @OneToMany to Note (mappedBy handover, cascade ALL)
+
+--- FILE: entity/Note.java ---
+Entity mapping to "notes" table.
+Columns: id (PK), content (TEXT), createdAt.
+Relationships:
+  - @ManyToOne to User as createdBy (created_by_id FK)
+  - @ManyToOne to Task (task_id FK) - Optional
+  - @ManyToOne to ChecklistItem (checklist_item_id FK) - Optional
+  - @ManyToOne to Handover (handover_id FK) - Optional
+Note: A Note can belong to a Task OR a ChecklistItem OR a Handover (polymorphic).
+
+--- FILE: entity/AuditLog.java ---
+Entity mapping to "audit_logs" table.
+Columns: id (PK), action, entityType, entityId, oldValue, newValue, timestamp.
+Relationships:
+  - @ManyToOne to User as performedBy (performed_by_id FK)
+
+--- FILE: enums/Role.java ---
+Enum: SUPER_ADMIN, MANAGER, TEAM_LEAD, DEVELOPER, TESTER, STAFF
+
+--- FILE: enums/ShiftType.java ---
+Enum: MORNING, EVENING, NIGHT
+
+--- FILE: enums/TaskStatus.java ---
+Enum: TODO, IN_PROGRESS, IN_REVIEW, TESTING, COMPLETED, BLOCKED
+
+--- FILE: enums/TaskPriority.java ---
+Enum: LOW, MEDIUM, HIGH
+
+--- FILE: enums/HandoverPriority.java ---
+Enum: LOW, MEDIUM, HIGH, CRITICAL
+
+--- FILE: controller/AuthController.java (mapped to /api/auth) ---
+Endpoints:
+  - POST /login: Authenticates user, returns JWT token + user info.
+    Request: { username, password }. Response: LoginResponse with token.
+  - POST /change-password: Changes current user's password.
+    Request: { currentPassword, newPassword, confirmPassword }.
+  - POST /create-user: [MANAGER+ only] Creates new user.
+    Request: CreateUserRequest.
+  - GET /me: Returns current authenticated user's profile as UserDTO.
+Security: /login and /change-password are accessible to all authenticated.
+/create-user requires SUPER_ADMIN or MANAGER role.
+
+--- FILE: controller/UserController.java (mapped to /api/users) ---
+Endpoints:
+  - GET /: [MANAGER+ or TEAM_LEAD] List all users.
+  - GET /profile: Get current user's profile.
+  - PUT /profile: Update own profile (name, email, phone only).
+  - POST /change-password: Change own password.
+  - GET /{id}: Get user by ID.
+  - GET /by-team/{teamId}: Get users by team.
+  - GET /by-role/{role}: [MANAGER+] Get users by role.
+  - PUT /{id}: [MANAGER+] Update any user (including role/team/shift).
+  - POST /{id}/reset-password: [MANAGER+] Reset user's password to "password123".
+
+--- FILE: controller/TeamController.java (mapped to /api/teams) ---
+Endpoints:
+  - GET /: List teams (all for managers, own team for others).
+  - GET /my-team: Get current user's team.
+  - GET /{id}: Get team by ID.
+  - GET /by-project/{projectId}: Get teams by project.
+  - POST /: [MANAGER+] Create team.
+  - PUT /{id}: [MANAGER+] Update team.
+  - DELETE /{id}: [SUPER_ADMIN only] Delete team.
+
+--- FILE: controller/ProjectController.java (mapped to /api/projects) ---
+Endpoints:
+  - GET /: List projects (all for managers, own project for others).
+  - GET /{id}: Get project by ID.
+  - GET /by-status/{status}: [MANAGER+] Filter by status.
+  - POST /: [MANAGER+] Create project.
+  - PUT /{id}: [MANAGER+] Update project.
+  - DELETE /{id}: [SUPER_ADMIN only] Delete project.
+
+--- FILE: controller/TaskController.java (mapped to /api/tasks) ---
+Endpoints:
+  - GET /: List tasks (all for managers, accessible for others based on
+    team and assigned tasks).
+  - GET /{id}: Get task by ID.
+  - GET /by-project/{projectId}: Filter by project.
+  - GET /by-team/{teamId}: Filter by team.
+  - GET /by-user/{userId}: Filter by assigned user.
+  - GET /my-tasks: Current user's assigned tasks.
+  - GET /my-pending: Current user's pending tasks.
+  - GET /overdue: [MANAGER+] Overdue tasks.
+  - POST /: [MANAGER+ or TEAM_LEAD] Create task.
+  - PUT /{id}: Update task (any authenticated user can update).
+  - DELETE /{id}: [MANAGER+ or TEAM_LEAD] Delete task.
+
+--- FILE: controller/ShiftController.java (mapped to /api/shifts) ---
+Endpoints:
+  - GET /: List all shifts.
+  - GET /{id}: Get shift by ID.
+  - GET /active: Get active shifts.
+  - POST /: [MANAGER+] Create shift.
+  - PUT /{id}: [MANAGER+] Update shift.
+  - DELETE /{id}: [SUPER_ADMIN only] Delete shift.
+
+--- FILE: controller/ChecklistController.java (mapped to /api/checklists) ---
+Endpoints:
+  - GET /: List all checklists.
+  - GET /{id}: Get checklist by ID.
+  - GET /by-shift/{shiftId}: Filter by shift.
+  - GET /by-team/{teamId}: Filter by team.
+  - POST /: [All roles] Create checklist with items.
+  - PUT /items/{itemId}/complete: Mark item as completed.
+  - PUT /items/{itemId}/uncomplete: Mark item as uncompleted.
+  - DELETE /{id}: [MANAGER+] Delete checklist.
+
+--- FILE: controller/HandoverController.java (mapped to /api/handovers) ---
+Endpoints:
+  - GET /: List all handovers.
+  - GET /{id}: Get by ID.
+  - GET /by-shift/{shiftId}: Filter by from-shift.
+  - GET /unresolved/{shiftId}: Unresolved handovers for a shift.
+  - GET /by-team/{teamId}: Filter by assigned team.
+  - GET /unacknowledged/{teamId}: Unacknowledged by receiving team.
+  - POST /: Create handover.
+  - PUT /{id}/resolve: Mark as resolved.
+  - PUT /{id}/acknowledge: Mark as acknowledged.
+  - DELETE /{id}: Delete handover.
+
+--- FILE: controller/NoteController.java (mapped to /api/notes) ---
+Endpoints:
+  - GET /by-task/{taskId}: Get notes for a task.
+  - GET /by-checklist-item/{itemId}: Get notes for a checklist item.
+  - GET /by-handover/{handoverId}: Get notes for a handover.
+  - POST /: Create note.
+  - DELETE /{id}: Delete note.
+
+--- FILE: controller/DashboardController.java (mapped to /api/dashboard) ---
+Endpoints:
+  - GET /: Get aggregated dashboard data for current user.
+
+--- FILE: controller/AuditController.java (mapped to /api/audit-logs) ---
+Endpoints:
+  - GET /: [MANAGER+] List all audit logs.
+  - GET /recent?days=7: [MANAGER+] Recent logs.
+  - GET /by-user/{userId}: [MANAGER+] Logs by user.
+
+--- FILE: service/AuthService.java ---
+Purpose: Handles authentication, password management, and user creation.
+Main methods:
+  - login(): Authenticates credentials via AuthenticationManager, generates
+    JWT, returns LoginResponse with token and user data.
+  - changePassword(): Validates current password, checks new password match,
+    encodes new password, updates user, sets firstLogin=false, logs audit.
+  - createUser(): Validates unique username/email, creates User entity,
+    encodes password, saves, logs audit.
+Dependencies: UserRepository, PasswordEncoder, JwtTokenProvider,
+AuthenticationManager, AuditLogService.
+
+--- FILE: service/UserService.java ---
+Purpose: CRUD operations for users with team/shift mapping.
+Main methods:
+  - getAllUsers(), getUserById(), getUserByUsername()
+  - getUsersByTeam(), getUsersByRole()
+  - updateUser(): Updates user fields including team and shift via FK
+  - updateMyProfile(): Limited update (name, email, phone only)
+  - changeMyPassword(), resetPassword()
+  - mapToDTO(): Converts User entity to UserDTO with team/shift names
+Dependencies: UserRepository, TeamRepository, ShiftRepository,
+PasswordEncoder, AuditLogService.
+
+--- FILE: service/TeamService.java ---
+Purpose: CRUD operations for teams with member assignment.
+Main methods:
+  - getAllTeams(), getTeamById(), getTeamsByProject()
+  - createTeam(): Creates team, assigns project/manager/lead, adds members.
+    Validates that manager != lead, and neither is added as regular member.
+  - updateTeam(): Updates team fields and reassigns members.
+  - deleteTeam(): Removes all members first, then deletes team.
+  - assignMembers(): Compares existing members with new list, adds/removes
+    as needed.
+  - mapToDTO(): Includes project name, manager/lead names, member details,
+    task count.
+Dependencies: TeamRepository, ProjectRepository, UserRepository, AuditLogService.
+
+--- FILE: service/ProjectService.java ---
+Purpose: CRUD operations for projects with date validation.
+Main methods:
+  - getAllProjects(), getProjectById(), getProjectsByStatus()
+  - createProject(): Validates dates, creates with default status "ACTIVE"
+  - updateProject(): Updates fields, validates end > start
+  - deleteProject(): Deletes project
+  - mapToDTO(): Includes team count and task count
+Dependencies: ProjectRepository, AuditLogService.
+
+--- FILE: service/TaskService.java ---
+Purpose: CRUD operations for tasks with filtered queries.
+Main methods:
+  - getAllTasks(), getTaskById()
+  - getTasksByProject(), getTasksByTeam(), getTasksByUser()
+  - getPendingTasksByUser(): Non-completed tasks for a user
+  - getAccessibleTasks(): For non-managers, returns team tasks +
+    personally assigned tasks (deduplicated)
+  - getOverdueTasks(): Tasks past due date not completed
+  - createTask(): Creates task with project/team/assignee resolution
+  - updateTask(): Updates fields, tracks status changes for audit
+  - deleteTask(): Deletes with audit log
+  - mapToDTO(): Includes project/team/assignee/creator names
+Dependencies: TaskRepository, ProjectRepository, TeamRepository,
+UserRepository, AuditLogService.
+
+--- FILE: service/ShiftService.java ---
+Purpose: CRUD operations for shifts with time validation.
+Main methods:
+  - getAllShifts(), getShiftById(), getActiveShifts()
+  - createShift(): Creates with time validation (end > start)
+  - updateShift(): Updates fields with time validation
+  - deleteShift(): Deletes with audit log
+Dependencies: ShiftRepository, TeamRepository, AuditLogService.
+
+--- FILE: service/ChecklistService.java ---
+Purpose: CRUD for checklists with item management.
+Main methods:
+  - getAllChecklists(), getChecklistById()
+  - getChecklistsByShift(), getChecklistsByTeam()
+  - createChecklist(): Creates checklist with items. Items are created as
+    part of the checklist entity (cascade).
+  - completeItem(): Marks item completed, sets completedBy and completedAt
+  - uncompleteItem(): Reverts completion
+  - deleteChecklist(): Cascade deletes all items
+  - mapToDTO(): Calculates progress percentage from completed/total items
+Dependencies: ChecklistRepository, ChecklistItemRepository, ShiftRepository,
+TeamRepository, UserRepository, AuditLogService.
+
+--- FILE: service/HandoverService.java ---
+Purpose: CRUD for handovers with resolve/acknowledge workflow.
+Main methods:
+  - getAllHandovers(), getHandoverById()
+  - getHandoversByShift(), getUnresolvedHandovers()
+  - getHandoversByAssignedTeam(), getUnacknowledgedHandovers()
+  - createHandover(): Creates with all related entities
+  - resolveHandover(): Sets resolved=true
+  - acknowledgeHandover(): Sets acknowledged=true and timestamp
+  - deleteHandover(): Deletes with cascade notes
+Dependencies: HandoverRepository, ProjectRepository, ShiftRepository,
+TeamRepository, UserRepository, AuditLogService.
+
+--- FILE: service/NoteService.java ---
+Purpose: CRUD for notes attached to tasks/checklist items/handovers.
+Main methods:
+  - getNotesByTask(), getNotesByChecklistItem(), getNotesByHandover()
+  - createNote(): Creates note linked to one of three parent types
+  - deleteNote(): Deletes note
+Dependencies: NoteRepository, TaskRepository, ChecklistItemRepository,
+HandoverRepository, AuditLogService.
+
+--- FILE: service/DashboardService.java ---
+Purpose: Aggregates dashboard data for the current user.
+Main methods:
+  - getDashboardData(): Based on user role and team/shift, computes:
+    * Total tasks (all for managers, team+own for others)
+    * Pending tasks (non-completed)
+    * Completed tasks
+    * Completed today
+    * Overdue tasks (past due, not completed)
+    * Blocked tasks
+    * Delayed checklists
+    * Missed handovers (leads+ only)
+    * Pending approvals (leads+ only = pending tasks)
+    * Recent tasks (top 10 by update date)
+    * Pending handovers (by shift)
+    * Pending checklist items (by shift, with count)
+
+--- FILE: service/AuditLogService.java ---
+Purpose: Creates and queries audit log entries.
+Main methods:
+  - log(): Creates audit entry with action, entity info, old/new values
+  - getAllLogs(): Returns all audit log entries
+  - getRecentLogs(): Logs from the last N days
+  - getLogsByUser(): Logs performed by a specific user
+Dependencies: AuditLogRepository.
+
+--- FILE: exception/BadRequestException.java ---
+Purpose: Custom exception for 400 Bad Request errors.
+Annotated with @ResponseStatus(HttpStatus.BAD_REQUEST).
+
+--- FILE: exception/ResourceNotFoundException.java ---
+Purpose: Custom exception for 404 Not Found errors.
+Annotated with @ResponseStatus(HttpStatus.NOT_FOUND).
+
+--- FILE: exception/GlobalExceptionHandler.java ---
+Purpose: Centralized exception handling for all controllers.
+Handles:
+  - ResourceNotFoundException → 404
+  - BadRequestException → 400
+  - BadCredentialsException → 401 (masks as "Invalid username or password")
+  - DisabledException → 403 ("Account is disabled")
+  - LockedException → 403 ("Account is locked")
+  - JwtException → 401 ("Authentication failed")
+  - MethodArgumentNotValidException → 400 (validation errors with field mapping)
+  - HttpMessageNotReadableException → 400 (invalid enum values, shows allowed)
+  - DataIntegrityViolationException → 409 (duplicate username/email detection)
+  - AccessDeniedException → 403 ("No permission")
+  - Exception (catch-all) → 500
+
+--- FILE: repository/UserRepository.java ---
+Methods:
+  - findByUsername(username): Optional<User>
+  - existsByUsername(username): boolean
+  - existsByEmail(email): boolean
+  - findByRole(role): List<User>
+  - findByTeamId(teamId): List<User>
+  - findByShiftId(shiftId): List<User>
+
+--- FILE: repository/TeamRepository.java ---
+Methods:
+  - findByProjectId(projectId): List<Team>
+  - findByTeamLeadId(teamLeadId): List<Team>
+
+--- FILE: repository/ProjectRepository.java ---
+Methods:
+  - findByStatus(status): List<Project>
+
+--- FILE: repository/TaskRepository.java ---
+Methods:
+  - findByProjectId(), findByTeamId(), findByAssignedToId()
+  - findByStatus(), findByCreatedById()
+  - findPendingTasksByUserId(userId): @Query (status != COMPLETED)
+  - findOverdueTasks(date): @Query (dueDate < ? AND status != COMPLETED)
+  - findPendingTasksByTeamId(teamId): @Query (status != COMPLETED)
+
+--- FILE: repository/ShiftRepository.java ---
+Methods:
+  - findByShiftType(shiftType): List<Shift>
+  - findByActiveTrue(): List<Shift>
+
+--- FILE: repository/ChecklistRepository.java ---
+Methods:
+  - findByShiftId(), findByTeamId(), findByCreatedById()
+  - findDelayedChecklists(date): @Query (created before date AND has
+    incomplete items)
+
+--- FILE: repository/ChecklistItemRepository.java ---
+Methods:
+  - findByChecklistId(), findByAssignedToId()
+  - findPendingItemsByShiftId(shiftId): @Query (item's checklist's shift
+    matches AND item not completed)
+
+--- FILE: repository/HandoverRepository.java ---
+Methods:
+  - findByFromShiftId(), findByToShiftId(), findByCreatedById()
+  - findByAssignedTeamId(), findByReceivingTeamId()
+  - findUnresolvedByShiftId(shiftId): @Query (resolved=false AND toShift=?)
+  - findUnacknowledgedByTeamId(teamId): @Query (acknowledged=false AND
+    receivingTeam=?)
+  - findMissedHandovers(): @Query (resolved=false AND created before today)
+
+--- FILE: repository/NoteRepository.java ---
+Methods:
+  - findByTaskId(), findByChecklistItemId(), findByHandoverId()
+  - findByCreatedById()
+
+--- FILE: repository/AuditLogRepository.java ---
+Methods:
+  - findByPerformedById(), findByEntityTypeAndEntityId()
+  - findRecentLogs(since): @Query (timestamp >= ? ORDER BY timestamp DESC)
+
+
+================================================================================
+6. DATABASE DESIGN
+================================================================================
+
+All tables are auto-created by Hibernate with ddl-auto=update.
+
+TABLE: users
+Columns:
+  id            BIGINT (PK, auto-increment)
+  username      VARCHAR (unique, not null)
+  password      VARCHAR (not null)
+  first_name    VARCHAR (not null)
+  last_name     VARCHAR (not null)
+  email         VARCHAR (unique, not null)
+  phone         VARCHAR
+  status        VARCHAR (default 'ACTIVE')
+  role          VARCHAR (enum as string, not null)
+  first_login   BOOLEAN (default true)
+  team_id       BIGINT (FK → teams.id, nullable)
+  shift_id      BIGINT (FK → shifts.id, nullable)
+  created_at    TIMESTAMP
+  updated_at    TIMESTAMP
+Relationships:
+  - Many users → One team (team_id FK)
+  - Many users → One shift (shift_id FK)
+
+TABLE: teams
+Columns:
+  id              BIGINT (PK, auto-increment)
+  name            VARCHAR (not null)
+  description     TEXT
+  project_id      BIGINT (FK → projects.id, nullable)
+  team_lead_id    BIGINT (FK → users.id, nullable)
+  manager_id      BIGINT (FK → users.id, nullable)
+  created_at      TIMESTAMP
+  updated_at      TIMESTAMP
+Relationships:
+  - Many teams → One project (project_id FK)
+  - Many teams → One user as team lead (team_lead_id FK)
+  - Many teams → One user as manager (manager_id FK)
+  - One team → Many users (members)
+  - One team → Many tasks
+  - One team → Many shifts
+
+TABLE: projects
+Columns:
+  id            BIGINT (PK, auto-increment)
+  name          VARCHAR (not null)
+  description   TEXT
+  status        VARCHAR
+  start_date    DATE
+  end_date      DATE
+  created_at    TIMESTAMP
+  updated_at    TIMESTAMP
+Relationships:
+  - One project → Many teams
+  - One project → Many tasks
+
+TABLE: tasks
+Columns:
+  id              BIGINT (PK, auto-increment)
+  title           VARCHAR (not null)
+  description     TEXT
+  status          VARCHAR (enum as string, not null, default 'TODO')
+  priority        VARCHAR (enum as string, not null, default 'MEDIUM')
+  project_id      BIGINT (FK → projects.id, nullable)
+  team_id         BIGINT (FK → teams.id, nullable)
+  assigned_to_id  BIGINT (FK → users.id, nullable)
+  created_by_id   BIGINT (FK → users.id, nullable)
+  due_date        DATE
+  created_at      TIMESTAMP
+  updated_at      TIMESTAMP
+Relationships:
+  - Many tasks → One project
+  - Many tasks → One team
+  - Many tasks → One user (assignedTo)
+  - Many tasks → One user (createdBy)
+  - One task → Many notes
+
+TABLE: shifts
+Columns:
+  id            BIGINT (PK, auto-increment)
+  name          VARCHAR (not null)
+  shift_type    VARCHAR (enum as string, not null)
+  start_time    TIME
+  end_time      TIME
+  active        BOOLEAN (default true)
+  team_id       BIGINT (FK → teams.id, nullable)
+  created_at    TIMESTAMP
+  updated_at    TIMESTAMP
+Relationships:
+  - Many shifts → One team
+  - One shift → Many users
+  - One shift → Many checklists (as shift's checklist)
+  - One shift → Many handovers (as fromShift or toShift)
+
+TABLE: checklists
+Columns:
+  id              BIGINT (PK, auto-increment)
+  title           VARCHAR (not null)
+  description     TEXT
+  shift_id        BIGINT (FK → shifts.id, nullable)
+  team_id         BIGINT (FK → teams.id, nullable)
+  created_by_id   BIGINT (FK → users.id, nullable)
+  created_at      TIMESTAMP
+  updated_at      TIMESTAMP
+Relationships:
+  - Many checklists → One shift
+  - Many checklists → One team
+  - Many checklists → One user (createdBy)
+  - One checklist → Many checklist items
+
+TABLE: checklist_items
+Columns:
+  id                BIGINT (PK, auto-increment)
+  title             VARCHAR (not null)
+  description       TEXT
+  completed         BOOLEAN (default false)
+  checklist_id      BIGINT (FK → checklists.id, nullable)
+  assigned_to_id    BIGINT (FK → users.id, nullable)
+  task_id           BIGINT (FK → tasks.id, nullable)
+  completed_by_id   BIGINT (FK → users.id, nullable)
+  completed_at      TIMESTAMP
+  created_at        TIMESTAMP
+  updated_at        TIMESTAMP
+Relationships:
+  - Many items → One checklist
+  - Many items → One user (assignedTo)
+  - Many items → One user (completedBy)
+  - Many items → One task (optional)
+  - One item → Many notes
+
+TABLE: handovers
+Columns:
+  id                      BIGINT (PK, auto-increment)
+  title                   VARCHAR (not null)
+  completed_work          TEXT
+  pending_work            TEXT
+  blockers                TEXT
+  next_shift_instructions TEXT
+  from_shift_id           BIGINT (FK → shifts.id, nullable)
+  to_shift_id             BIGINT (FK → shifts.id, nullable)
+  assigned_team_id        BIGINT (FK → teams.id, nullable)
+  receiving_team_id       BIGINT (FK → teams.id, nullable)
+  project_id              BIGINT (FK → projects.id, nullable)
+  created_by_id           BIGINT (FK → users.id, nullable)
+  priority                VARCHAR (enum as string)
+  resolved                BOOLEAN (default false)
+  acknowledged            BOOLEAN (default false)
+  acknowledged_at         TIMESTAMP
+  created_at              TIMESTAMP
+  updated_at              TIMESTAMP
+Relationships:
+  - Many handovers → One from-shift
+  - Many handovers → One to-shift
+  - Many handovers → One assigned-team
+  - Many handovers → One receiving-team
+  - Many handovers → One project
+  - Many handovers → One user (createdBy)
+  - One handover → Many notes
+
+TABLE: notes
+Columns:
+  id                  BIGINT (PK, auto-increment)
+  content             TEXT (not null)
+  created_by_id       BIGINT (FK → users.id, nullable)
+  task_id             BIGINT (FK → tasks.id, nullable)
+  checklist_item_id   BIGINT (FK → checklist_items.id, nullable)
+  handover_id         BIGINT (FK → handovers.id, nullable)
+  created_at          TIMESTAMP
+Relationships:
+  - Many notes → One user (createdBy)
+  - Many notes → One task (optional)
+  - Many notes → One checklist item (optional)
+  - Many notes → One handover (optional)
+Note: A note can be linked to EITHER a task, checklist_item, or handover.
+
+TABLE: audit_logs
+Columns:
+  id                BIGINT (PK, auto-increment)
+  action            VARCHAR (not null)
+  entity_type       VARCHAR
+  entity_id         BIGINT
+  old_value         TEXT
+  new_value         TEXT
+  performed_by_id   BIGINT (FK → users.id, nullable)
+  timestamp         TIMESTAMP
+Relationships:
+  - Many audit logs → One user (performedBy)
+
+KEY RELATIONSHIPS SUMMARY:
+- User ↔ Team: Many-to-One (user.team_id → team.id)
+- User ↔ Shift: Many-to-One (user.shift_id → shift.id)
+- Team ↔ Project: Many-to-One (team.project_id → project.id)
+- Team ↔ User (lead): Many-to-One (team.team_lead_id → user.id)
+- Team ↔ User (manager): Many-to-One (team.manager_id → user.id)
+- Task ↔ Project: Many-to-One
+- Task ↔ Team: Many-to-One
+- Task ↔ User (assigned): Many-to-One
+- Task ↔ User (creator): Many-to-One
+- Checklist ↔ Shift: Many-to-One
+- Checklist ↔ Team: Many-to-One
+- Checklist ↔ User (creator): Many-to-One
+- Checklist ↔ ChecklistItem: One-to-Many (cascade)
+- ChecklistItem ↔ User (assigned): Many-to-One
+- ChecklistItem ↔ User (completedBy): Many-to-One
+- ChecklistItem ↔ Task: Many-to-One
+- Handover ↔ Shift (from/to): Many-to-One (two FKs)
+- Handover ↔ Team (assigned/receiving): Many-to-One (two FKs)
+- Handover ↔ User (creator): Many-to-One
+- Note ↔ polymorphic parent (Task/ChecklistItem/Handover): Many-to-One
+
+================================================================================
+7. COMPLETE WORKFLOW
+================================================================================
+
+A. LOGIN FLOW
+1. User navigates to /login page.
+2. User enters username and password, submits form.
+3. Frontend calls POST /api/auth/login with { username, password }.
+4. Backend AuthController receives request.
+5. AuthService.login() is called:
+   a. Looks up user by username from UserRepository.
+   b. Calls AuthenticationManager.authenticate() which uses
+      CustomUserDetailsService to load user and BCrypt to verify password.
+   c. On success, JwtTokenProvider.generateToken() creates a JWT.
+   d. Returns LoginResponse with token and user details.
+6. Frontend AuthContext.login() stores token and user in localStorage.
+7. User is navigated to /dashboard.
+8. Subsequent requests automatically attach the JWT via Axios interceptor.
+
+B. JWT AUTHENTICATION FLOW
+1. Every API request goes through JwtAuthenticationFilter (OncePerRequestFilter).
+2. Filter extracts "Bearer <token>" from Authorization header.
+3. JwtTokenProvider.validateToken() verifies:
+   a. Token signature using HMAC-SHA key.
+   b. Token expiration date.
+4. If valid, JwtTokenProvider.getUsernameFromToken() extracts username.
+5. CustomUserDetailsService.loadUserByUsername() loads full user details.
+6. UsernamePasswordAuthenticationToken is created with user and authorities.
+7. SecurityContextHolder is set with this authentication.
+8. The filter chain continues - controller can now use @AuthenticationPrincipal
+   to access the authenticated user.
+
+C. USER CREATION FLOW
+1. Manager opens Users page, clicks "Add User".
+2. Fills form: username, password, name, email, role, team.
+3. Frontend calls POST /api/auth/create-user with CreateUserRequest body.
+4. AuthController.createUser() is called with @PreAuthorize requiring
+   SUPER_ADMIN or MANAGER role.
+5. AuthService.createUser() does:
+   a. Checks if username or email already exists (throws if so).
+   b. Creates new User entity with BCrypt-encoded password.
+   c. Sets firstLogin=true (forces password change on first login).
+   d. Saves user via UserRepository.
+   e. Logs audit entry "USER_CREATED".
+6. Frontend refreshes user list.
+
+D. TEAM ASSIGNMENT FLOW
+1. Manager goes to Teams page, clicks "Add Team".
+2. Selects project, manager (from MANAGER users), team lead (from TEAM_LEAD users),
+   and checks members (STAFF/DEVELOPER/TESTER users).
+3. Validates: manager != team lead, neither is in member list.
+4. Frontend calls POST /api/teams with CreateTeamRequest.
+5. TeamController.createTeam() (MANAGER+ role required).
+6. TeamService.createTeam():
+   a. Creates Team entity with project/manager/lead references.
+   b. Saves team.
+   c. For each memberId, finds user, sets user.team = team, saves user.
+   d. Logs audit.
+7. Users now belong to the team and can see team-related tasks/projects.
+
+E. TASK CREATION FLOW
+1. Manager or Team Lead opens Tasks page, clicks "Add Task".
+2. Fills: title, description, status, priority, project, team,
+   assigned user, due date.
+3. Frontend calls POST /api/tasks with CreateTaskRequest.
+4. TaskController.createTask() (MANAGER+ or TEAM_LEAD role).
+5. TaskService.createTask():
+   a. Creates Task entity.
+   b. Resolves project/team/assignee FKs from IDs.
+   c. Sets currentUser as createdBy.
+   d. Saves task.
+   e. Logs audit.
+6. Assigned user can now see the task and update its status.
+
+F. CHECKLIST WORKFLOW
+1. Any user can create a checklist (all roles allowed).
+2. Goes to Checklists page, clicks "Create Checklist".
+3. Enters title, selects shift and team.
+4. Adds items with titles and optional assignees.
+5. Frontend calls POST /api/checklists with items array.
+6. ChecklistService.createChecklist():
+   a. Creates Checklist entity with cascade persistence of items.
+   b. Each ChecklistItem is created with assigned user (if specified).
+   c. Saves checklist (cascade saves all items).
+7. Assignees see items on their shift's checklist.
+8. User clicks checkbox to complete item:
+   a. Frontend calls PUT /api/checklists/items/{id}/complete.
+   b. ChecklistService.completeItem() sets completed=true, completedBy,
+      completedAt.
+9. Progress bar on the checklist card updates automatically.
+
+G. HANDOVER WORKFLOW
+1. At end of shift, user creates a handover.
+2. Goes to Handovers page, clicks "Create Handover".
+3. Fills: title, from/to shifts, teams, completed/pending work, blockers,
+   instructions for next shift.
+4. Frontend calls POST /api/handovers.
+5. HandoverService.createHandover() saves with all relations.
+6. Next shift sees the pending handover on their dashboard.
+7. The oncoming shift worker clicks "Resolve" to acknowledge the content.
+8. Then clicks "Acknowledge" to formally accept the handover.
+9. Resolve: PUT /api/handovers/{id}/resolve → sets resolved=true.
+10. Acknowledge: PUT /api/handovers/{id}/acknowledge → sets acknowledged=true
+    + acknowledgedAt timestamp.
+
+H. ROLE-BASED ACCESS WORKFLOW
+1. When a user logs in, their role is returned as part of the JWT and user data.
+2. Frontend uses role to conditionally show/hide UI elements:
+   - Layout sidebar hides Users for non-managers/leads, hides Shifts for leads.
+   - Pages check roles before showing Add/Edit/Delete buttons.
+3. Backend enforces role checks via @PreAuthorize annotations:
+   - @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')") on sensitive endpoints.
+   - @PreAuthorize("hasAnyRole('SUPER_ADMIN')") on delete endpoints.
+4. If a user tries to access a restricted endpoint, Spring Security returns 403
+   Forbidden, handled by GlobalExceptionHandler.
+
+I. DASHBOARD DATA FLOW
+1. User navigates to dashboard.
+2. Frontend calls GET /api/dashboard.
+3. DashboardController.getDashboard() gets current user.
+4. DashboardService.getDashboardData(user):
+   a. Determines if user is manager (full data) or staff (limited data).
+   b. Managers: getAllTasks(), computes stats.
+   c. Staff: Gets team tasks + assigned tasks (deduplicated), computes stats.
+   d. Gets recent tasks (sorted by update time, top 10).
+   e. If user has shift, gets pending handovers and pending checklist items.
+   f. For leads+, gets missed handovers and pending approvals count.
+5. Returns DashboardDTO with all computed stats.
+6. Frontend renders stat cards and lists.
+
+================================================================================
+8. ROLE-BASED ACCESS CONTROL
+================================================================================
+
+SUPER_ADMIN:
+  - Full system access
+  - Can create/edit/delete everything: users, teams, projects, tasks,
+    shifts, checklists, handovers
+  - Can delete teams, projects, shifts (restricted to SUPER_ADMIN only)
+  - Can view audit logs
+  - Can reset any user's password
+  - Sees all data on dashboard
+
+MANAGER:
+  - Can create/edit users (except SUPER_ADMIN)
+  - Can create/edit/delete teams (but not delete - that's SUPER_ADMIN only)
+  - Can create/edit projects
+  - Can create/edit/delete tasks
+  - Can create/edit shifts (but not delete - SUPER_ADMIN only)
+  - Can delete checklists
+  - Can view all users
+  - Can view audit logs
+  - Can reset user passwords
+  - Sees all projects, teams, and tasks
+  - Cannot delete teams/projects/shifts
+
+TEAM_LEAD:
+  - Cannot see/manage Users page (hidden from sidebar by Layout)
+  - Cannot see Shifts page (hidden from sidebar)
+  - Can create/edit/delete tasks within their team
+  - Can view their team members
+  - Can create checklists
+  - Views only their team's data on dashboard
+  - Cannot create/edit users
+
+DEVELOPER:
+  - Can create checklists and items
+  - Can view tasks assigned to them or their team
+  - Can complete checklist items
+  - Can create handovers
+  - Cannot create/edit users, teams, projects, shifts
+  - Limited view on dashboard
+
+TESTER:
+  - Same as DEVELOPER - can create checklists, view tasks, complete items
+  - Cannot manage users/teams/projects
+
+STAFF:
+  - Can create checklists and items
+  - Can view assigned tasks
+  - Can complete checklist items
+  - Can create handovers
+  - Cannot manage any entities
+  - Most restricted view on dashboard
+
+BACKEND RESTRICTION SUMMARY:
+  - DELETE /api/teams/{id} → SUPER_ADMIN only
+  - DELETE /api/projects/{id} → SUPER_ADMIN only
+  - DELETE /api/shifts/{id} → SUPER_ADMIN only
+  - POST/PUT /api/users/{id} → MANAGER+ only (edit user)
+  - POST /api/users/{id}/reset-password → MANAGER+ only
+  - POST /api/auth/create-user → MANAGER+ only
+  - POST/PUT /api/projects → MANAGER+ only
+  - POST/PUT /api/teams → MANAGER+ only
+  - POST/PUT /api/shifts → MANAGER+ only
+  - POST/DELETE /api/tasks → MANAGER+ or TEAM_LEAD
+  - DELETE /api/checklists/{id} → MANAGER+ only
+  - GET /api/audit-logs/** → MANAGER+ only
+  - PUT /api/tasks/{id} → any authenticated user
+  - POST /api/checklists → all authenticated users
+  - POST /api/handovers → all authenticated users
+
+================================================================================
+9. API DOCUMENTATION
+================================================================================
+
+AUTHENTICATION:
+  POST /api/auth/login
+    Purpose: Authenticate user and get JWT token
+    Access: Public
+    Request: { "username": "...", "password": "..." }
+    Response: {
+      "token": "jwt...", "type": "Bearer", "id": 1, "username": "...",
+      "firstName": "...", "lastName": "...", "email": "...", "role": "...",
+      "teamId": null, "shiftId": null, "firstLogin": false
+    }
+
+  POST /api/auth/change-password
+    Purpose: Change current user's password
+    Access: Authenticated
+    Request: { "currentPassword": "...", "newPassword": "...", "confirmPassword": "..." }
+    Response: "Password changed successfully"
+
+  POST /api/auth/create-user
+    Purpose: Create a new user
+    Access: SUPER_ADMIN, MANAGER
+    Request: { "username": "...", "password": "...", "firstName": "...",
+               "lastName": "...", "email": "...", "phone": "...", "role": "STAFF",
+               "teamId": null }
+    Response: "User created successfully"
+
+  GET /api/auth/me
+    Purpose: Get current authenticated user's profile
+    Access: Authenticated
+    Response: UserDTO
+
+USERS:
+  GET /api/users
+    Purpose: List all users
+    Access: SUPER_ADMIN, MANAGER, TEAM_LEAD
+    Response: [UserDTO, ...]
+
+  GET /api/users/profile
+    Purpose: Get own profile
+    Access: Authenticated
+    Response: UserDTO
+
+  PUT /api/users/profile
+    Purpose: Update own profile
+    Access: Authenticated
+    Request: { "firstName": "...", "lastName": "...", "email": "...", "phone": "..." }
+    Response: UserDTO
+
+  POST /api/users/change-password
+    Purpose: Change own password
+    Access: Authenticated
+    Request: { "currentPassword": "...", "newPassword": "...", "confirmPassword": "..." }
+    Response: "Password changed successfully"
+
+  GET /api/users/{id}
+    Purpose: Get user by ID
+    Access: Authenticated
+    Response: UserDTO
+
+  GET /api/users/by-team/{teamId}
+    Purpose: Get users in a team
+    Access: Authenticated
+    Response: [UserDTO, ...]
+
+  GET /api/users/by-role/{role}
+    Purpose: Get users by role
+    Access: SUPER_ADMIN, MANAGER
+    Response: [UserDTO, ...]
+
+  PUT /api/users/{id}
+    Purpose: Update any user (including role/team/shift)
+    Access: SUPER_ADMIN, MANAGER
+    Request: UpdateUserRequest
+    Response: UserDTO
+
+  POST /api/users/{id}/reset-password
+    Purpose: Reset user password to "password123"
+    Access: SUPER_ADMIN, MANAGER
+    Response: "Password reset successfully"
+
+TEAMS:
+  GET /api/teams
+    Purpose: List teams (all for managers, own for others)
+    Access: Authenticated
+    Response: [TeamDTO, ...]
+
+  GET /api/teams/my-team
+    Purpose: Get current user's team
+    Access: Authenticated
+    Response: TeamDTO
+
+  GET /api/teams/{id}
+    Purpose: Get team by ID
+    Access: Authenticated
+    Response: TeamDTO
+
+  GET /api/teams/by-project/{projectId}
+    Purpose: Get teams by project
+    Access: Authenticated
+    Response: [TeamDTO, ...]
+
+  POST /api/teams
+    Purpose: Create team
+    Access: SUPER_ADMIN, MANAGER
+    Request: { "name": "...", "description": "...", "projectId": null,
+               "managerId": null, "teamLeadId": null, "memberIds": [] }
+    Response: TeamDTO
+
+  PUT /api/teams/{id}
+    Purpose: Update team
+    Access: SUPER_ADMIN, MANAGER
+    Request: Same as create
+    Response: TeamDTO
+
+  DELETE /api/teams/{id}
+    Purpose: Delete team
+    Access: SUPER_ADMIN only
+    Response: "Team deleted successfully"
+
+PROJECTS:
+  GET /api/projects
+    Purpose: List projects
+    Access: Authenticated
+    Response: [ProjectDTO, ...]
+
+  GET /api/projects/{id}
+    Purpose: Get project by ID
+    Access: Authenticated
+    Response: ProjectDTO
+
+  GET /api/projects/by-status/{status}
+    Purpose: Get projects by status
+    Access: SUPER_ADMIN, MANAGER
+    Response: [ProjectDTO, ...]
+
+  POST /api/projects
+    Purpose: Create project
+    Access: SUPER_ADMIN, MANAGER
+    Request: { "name": "...", "description": "...", "status": "ACTIVE",
+               "startDate": null, "endDate": null }
+    Response: ProjectDTO
+
+  PUT /api/projects/{id}
+    Purpose: Update project
+    Access: SUPER_ADMIN, MANAGER
+    Request: Same as create
+    Response: ProjectDTO
+
+  DELETE /api/projects/{id}
+    Purpose: Delete project
+    Access: SUPER_ADMIN only
+    Response: "Project deleted successfully"
+
+TASKS:
+  GET /api/tasks
+    Purpose: List tasks
+    Access: Authenticated
+    Response: [TaskDTO, ...]
+
+  GET /api/tasks/{id}
+    Purpose: Get task by ID
+    Access: Authenticated
+    Response: TaskDTO
+
+  GET /api/tasks/by-project/{projectId}
+    Purpose: Get tasks by project
+    Access: Authenticated
+    Response: [TaskDTO, ...]
+
+  GET /api/tasks/by-team/{teamId}
+    Purpose: Get tasks by team
+    Access: Authenticated
+    Response: [TaskDTO, ...]
+
+  GET /api/tasks/by-user/{userId}
+    Purpose: Get tasks assigned to user
+    Access: Authenticated
+    Response: [TaskDTO, ...]
+
+  GET /api/tasks/my-tasks
+    Purpose: Get current user's tasks
+    Access: Authenticated
+    Response: [TaskDTO, ...]
+
+  GET /api/tasks/my-pending
+    Purpose: Get current user's pending tasks
+    Access: Authenticated
+    Response: [TaskDTO, ...]
+
+  GET /api/tasks/overdue
+    Purpose: Get overdue tasks
+    Access: SUPER_ADMIN, MANAGER
+    Response: [TaskDTO, ...]
+
+  POST /api/tasks
+    Purpose: Create task
+    Access: SUPER_ADMIN, MANAGER, TEAM_LEAD
+    Request: { "title": "...", "description": "...", "status": "TODO",
+               "priority": "MEDIUM", "projectId": null, "teamId": null,
+               "assignedToId": null, "dueDate": null }
+    Response: TaskDTO
+
+  PUT /api/tasks/{id}
+    Purpose: Update task
+    Access: Authenticated
+    Request: UpdateTaskRequest
+    Response: TaskDTO
+
+  DELETE /api/tasks/{id}
+    Purpose: Delete task
+    Access: SUPER_ADMIN, MANAGER, TEAM_LEAD
+    Response: "Task deleted successfully"
+
+SHIFTS:
+  GET /api/shifts
+    Purpose: List all shifts
+    Access: Authenticated
+    Response: [ShiftDTO, ...]
+
+  GET /api/shifts/{id}
+    Purpose: Get shift by ID
+    Access: Authenticated
+    Response: ShiftDTO
+
+  GET /api/shifts/active
+    Purpose: Get active shifts
+    Access: Authenticated
+    Response: [ShiftDTO, ...]
+
+  POST /api/shifts
+    Purpose: Create shift
+    Access: SUPER_ADMIN, MANAGER
+    Request: { "name": "...", "shiftType": "MORNING", "startTime": "06:00:00",
+               "endTime": "14:00:00", "active": true, "teamId": null }
+    Response: ShiftDTO
+
+  PUT /api/shifts/{id}
+    Purpose: Update shift
+    Access: SUPER_ADMIN, MANAGER
+    Request: Same as create
+    Response: ShiftDTO
+
+  DELETE /api/shifts/{id}
+    Purpose: Delete shift
+    Access: SUPER_ADMIN only
+    Response: "Shift deleted successfully"
+
+CHECKLISTS:
+  GET /api/checklists
+    Purpose: List all checklists (with items and progress)
+    Access: Authenticated
+    Response: [ChecklistDTO, ...]
+
+  GET /api/checklists/{id}
+    Purpose: Get checklist by ID
+    Access: Authenticated
+    Response: ChecklistDTO
+
+  GET /api/checklists/by-shift/{shiftId}
+    Purpose: Get checklists for shift
+    Access: Authenticated
+    Response: [ChecklistDTO, ...]
+
+  GET /api/checklists/by-team/{teamId}
+    Purpose: Get checklists for team
+    Access: Authenticated
+    Response: [ChecklistDTO, ...]
+
+  POST /api/checklists
+    Purpose: Create checklist with items
+    Access: All authenticated users
+    Request: { "title": "...", "description": "...", "shiftId": null,
+               "teamId": null, "items": [{ "title": "...", "description": "...",
+               "assignedToId": null }] }
+    Response: ChecklistDTO
+
+  PUT /api/checklists/items/{itemId}/complete
+    Purpose: Mark checklist item as completed
+    Access: Authenticated
+    Response: ChecklistItemDTO
+
+  PUT /api/checklists/items/{itemId}/uncomplete
+    Purpose: Mark checklist item as uncompleted
+    Access: Authenticated
+    Response: ChecklistItemDTO
+
+  DELETE /api/checklists/{id}
+    Purpose: Delete checklist
+    Access: SUPER_ADMIN, MANAGER
+    Response: "Checklist deleted successfully"
+
+HANDOVERS:
+  GET /api/handovers
+    Purpose: List all handovers
+    Access: Authenticated
+    Response: [HandoverDTO, ...]
+
+  GET /api/handovers/{id}
+    Purpose: Get handover by ID
+    Access: Authenticated
+    Response: HandoverDTO
+
+  GET /api/handovers/by-shift/{shiftId}
+    Purpose: Get handovers from shift
+    Access: Authenticated
+    Response: [HandoverDTO, ...]
+
+  GET /api/handovers/unresolved/{shiftId}
+    Purpose: Get unresolved handovers for a shift
+    Access: Authenticated
+    Response: [HandoverDTO, ...]
+
+  GET /api/handovers/by-team/{teamId}
+    Purpose: Get handovers by assigned team
+    Access: Authenticated
+    Response: [HandoverDTO, ...]
+
+  GET /api/handovers/unacknowledged/{teamId}
+    Purpose: Get unacknowledged handovers for receiving team
+    Access: Authenticated
+    Response: [HandoverDTO, ...]
+
+  POST /api/handovers
+    Purpose: Create handover
+    Access: Authenticated
+    Request: { "title": "...", "completedWork": "...", "pendingWork": "...",
+               "blockers": "...", "nextShiftInstructions": "...",
+               "fromShiftId": null, "toShiftId": null, "assignedTeamId": null,
+               "receivingTeamId": null, "priority": "MEDIUM" }
+    Response: HandoverDTO
+
+  PUT /api/handovers/{id}/resolve
+    Purpose: Mark handover as resolved
+    Access: Authenticated
+    Response: HandoverDTO
+
+  PUT /api/handovers/{id}/acknowledge
+    Purpose: Acknowledge handover receipt
+    Access: Authenticated
+    Response: HandoverDTO
+
+  DELETE /api/handovers/{id}
+    Purpose: Delete handover
+    Access: Authenticated
+    Response: "Handover deleted successfully"
+
+NOTES:
+  GET /api/notes/by-task/{taskId}
+    Purpose: Get notes for a task
+    Access: Authenticated
+    Response: [NoteDTO, ...]
+
+  GET /api/notes/by-checklist-item/{itemId}
+    Purpose: Get notes for checklist item
+    Access: Authenticated
+    Response: [NoteDTO, ...]
+
+  GET /api/notes/by-handover/{handoverId}
+    Purpose: Get notes for handover
+    Access: Authenticated
+    Response: [NoteDTO, ...]
+
+  POST /api/notes
+    Purpose: Create note
+    Access: Authenticated
+    Request: { "content": "...", "taskId": null, "checklistItemId": null,
+               "handoverId": null }
+    Response: NoteDTO
+
+  DELETE /api/notes/{id}
+    Purpose: Delete note
+    Access: Authenticated
+    Response: "Note deleted successfully"
+
+DASHBOARD:
+  GET /api/dashboard
+    Purpose: Get dashboard data for current user
+    Access: Authenticated
+    Response: DashboardDTO (totalTasks, pendingTasks, completedTasks,
+              overdueTasks, blockedTasks, completedToday, pendingApprovals,
+              delayedChecklists, missedHandovers, pendingChecklistItemsCount,
+              recentTasks[], pendingHandovers[], pendingChecklistItems[])
+
+AUDIT LOGS:
+  GET /api/audit-logs
+    Purpose: List all audit logs
+    Access: SUPER_ADMIN, MANAGER
+    Response: [AuditLogDTO, ...]
+
+  GET /api/audit-logs/recent?days=7
+    Purpose: Get recent audit logs
+    Access: SUPER_ADMIN, MANAGER
+    Response: [AuditLogDTO, ...]
+
+  GET /api/audit-logs/by-user/{userId}
+    Purpose: Get audit logs by user
+    Access: SUPER_ADMIN, MANAGER
+    Response: [AuditLogDTO, ...]
+
+================================================================================
+10. FILE CONNECTION MAPPING
+================================================================================
+
+FRONTEND TO BACKEND API MAPPING:
+---------------------------------
+Login.jsx          → POST /api/auth/login (via authService.login)
+                   → POST /api/auth/change-password (via authService.changePassword)
+AuthContext.jsx    → Uses authService methods
+Users.jsx          → GET /api/users, POST /api/auth/create-user
+                     PUT /api/users/{id}, POST /api/users/{id}/reset-password
+                     GET /api/teams, GET /api/shifts
+Teams.jsx          → GET /api/teams, POST /api/teams, PUT /api/teams/{id}
+                     DELETE /api/teams/{id}, GET /api/projects, GET /api/users
+Projects.jsx       → GET /api/projects, POST /api/projects, PUT /api/projects/{id}
+                     DELETE /api/projects/{id}
+Tasks.jsx          → GET /api/tasks, POST /api/tasks, PUT /api/tasks/{id}
+                     DELETE /api/tasks/{id}
+                     GET /api/projects, GET /api/teams, GET /api/users
+Shifts.jsx         → GET /api/shifts, POST /api/shifts, PUT /api/shifts/{id}
+                     DELETE /api/shifts/{id}, GET /api/teams
+Checklists.jsx     → GET /api/checklists, POST /api/checklists, DELETE /api/checklists/{id}
+                     PUT /api/checklists/items/{id}/complete
+                     PUT /api/checklists/items/{id}/uncomplete
+                     GET /api/shifts, GET /api/teams, GET /api/users/by-team/{teamId}
+Handovers.jsx      → GET /api/handovers, POST /api/handovers
+                     PUT /api/handovers/{id}/resolve
+                     PUT /api/handovers/{id}/acknowledge
+                     DELETE /api/handovers/{id}
+                     GET /api/shifts, GET /api/teams
+Dashboard.jsx      → GET /api/dashboard
+api.js             → Central module that defines all service objects
+
+BACKEND CONTROLLER TO SERVICE MAPPING:
+---------------------------------------
+AuthController       → AuthService
+UserController       → UserService
+TeamController       → TeamService
+ProjectController    → ProjectService
+TaskController       → TaskService
+ShiftController      → ShiftService
+ChecklistController  → ChecklistService
+HandoverController   → HandoverService
+NoteController       → NoteService
+DashboardController  → DashboardService
+AuditController      → AuditLogService
+
+BACKEND SERVICE TO REPOSITORY MAPPING:
+---------------------------------------
+AuthService          → UserRepository
+UserService          → UserRepository, TeamRepository, ShiftRepository
+TeamService          → TeamRepository, ProjectRepository, UserRepository
+ProjectService       → ProjectRepository
+TaskService          → TaskRepository, ProjectRepository, TeamRepository, UserRepository
+ShiftService         → ShiftRepository, TeamRepository
+ChecklistService     → ChecklistRepository, ChecklistItemRepository,
+                       ShiftRepository, TeamRepository, UserRepository
+HandoverService      → HandoverRepository, ProjectRepository, ShiftRepository,
+                       TeamRepository, UserRepository
+NoteService          → NoteRepository, TaskRepository, ChecklistItemRepository,
+                       HandoverRepository
+DashboardService     → TaskRepository, HandoverRepository, ChecklistItemRepository,
+                       ChecklistRepository
+AuditLogService      → AuditLogRepository
+CustomUserDetailsService → UserRepository
+
+BACKEND REPOSITORY TO ENTITY/TABLE MAPPING:
+-------------------------------------------
+UserRepository        → User entity → users table
+TeamRepository        → Team entity → teams table
+ProjectRepository     → Project entity → projects table
+TaskRepository        → Task entity → tasks table
+ShiftRepository       → Shift entity → shifts table
+ChecklistRepository   → Checklist entity → checklists table
+ChecklistItemRepository → ChecklistItem entity → checklist_items table
+HandoverRepository    → Handover entity → handovers table
+NoteRepository        → Note entity → notes table
+AuditLogRepository    → AuditLog entity → audit_logs table
+
+SECURITY FLOW:
+--------------
+JwtAuthenticationFilter → JwtTokenProvider (validate + extract username)
+                         → CustomUserDetailsService (load user details)
+                         → SecurityContextHolder (set authentication)
+
+================================================================================
+11. AUTHENTICATION & SECURITY
+================================================================================
+
+JWT GENERATION:
+  - Triggered by successful authentication via POST /api/auth/login.
+  - AuthenticationManager authenticates username + password.
+  - JwtTokenProvider.generateToken(authentication):
+    * Extracts username from UserDetails principal.
+    * Creates JWT with: subject=username, issuedAt=now, expiration=now+24h.
+    * Signs with HMAC-SHA key derived from app.jwt.secret property.
+    * Returns compact JWT string.
+
+JWT VALIDATION:
+  - JwtAuthenticationFilter intercepts every request (except /api/auth/**).
+  - Extracts token from "Authorization: Bearer <token>" header.
+  - Calls JwtTokenProvider.validateToken(token):
+    * Parses JWT with the same signing key.
+    * Validates signature (tamper-proof).
+    * Validates expiration (rejects expired tokens).
+  - If valid: extracts username, loads UserDetails, sets auth in context.
+  - If invalid: continues filter chain without authentication (results in 401).
+
+SPRING SECURITY FLOW:
+  1. Request arrives at filter chain.
+  2. JwtAuthenticationFilter.doFilterInternal() runs first.
+  3. If JWT is present and valid:
+     - Creates UsernamePasswordAuthenticationToken with
+       userDetails.getAuthorities() which includes "ROLE_SUPER_ADMIN" etc.
+     - Sets SecurityContextHolder authentication.
+  4. Request reaches controller.
+  5. @PreAuthorize annotations check authorities before method execution.
+  6. If not authorized, AccessDeniedException is thrown → 403 response.
+
+PASSWORD ENCODING:
+  - BCryptPasswordEncoder is used (config in SecurityConfig).
+  - Passwords are never stored in plain text.
+  - During login: AuthenticationManager uses DaoAuthenticationProvider which
+    calls PasswordEncoder.matches() to compare plaintext input with stored hash.
+  - During user creation: password is encoded before saving.
+  - During password change/reset: new password is encoded before saving.
+
+PROTECTED ROUTES:
+  - Authentication: Requests matching /api/auth/** are publicly accessible.
+    All other routes require a valid JWT.
+  - Authorization: @PreAuthorize annotations on controller methods:
+    * hasAnyRole('SUPER_ADMIN', 'MANAGER') - manager-level access
+    * hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD') - lead-level access
+    * hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD', 'STAFF', 'DEVELOPER', 'TESTER')
+      - all authenticated roles
+
+ROLE AUTHORIZATION:
+  - Spring Security grant authorities as "ROLE_SUPER_ADMIN", "ROLE_MANAGER", etc.
+  - @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')") internally checks for
+    "ROLE_SUPER_ADMIN" or "ROLE_MANAGER" in the granted authorities.
+  - Built via CustomUserDetailsService:
+    Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+
+================================================================================
+12. IMPORTANT LEARNING NOTES
+================================================================================
+
+Why certain architecture is used:
+  - Three-tier architecture (Controller → Service → Repository):
+    * Separation of concerns - each layer has a specific responsibility.
+    * Controllers handle HTTP requests/responses.
+    * Services contain business logic.
+    * Repositories handle database operations.
+    * Makes the code testable, maintainable, and modular.
+
+Why DTOs are used:
+  - Data Transfer Objects separate the internal entity structure from the
+    API response structure.
+  - Entities may contain sensitive data (passwords) or circular references
+    that should not be exposed.
+  - DTOs allow combining data from multiple entities (e.g., TaskDTO includes
+    projectName from Project entity).
+  - DTOs prevent over-fetching or under-fetching of data.
+  - DTOs act as a contract between frontend and backend.
+
+Why Repositories are used:
+  - Spring Data JPA repositories provide CRUD operations without boilerplate.
+  - Custom query methods are derived from method names (e.g., findByTeamId).
+  - @Query annotations allow custom JPQL/HQL queries.
+  - Repositories handle transaction management and entity lifecycle.
+
+Why JWT is used:
+  - Stateless authentication - no server-side session storage needed.
+  - Tokens contain all user information, reducing database lookups.
+  - Easy to use in distributed/microservice architectures.
+  - Frontend stores token in localStorage and sends with every request.
+  - Works well with REST APIs (no cookies/sessions needed).
+
+Why React state is needed:
+  - Components need to respond to user interactions and data changes.
+  - State allows tracking form inputs, API responses, UI visibility.
+  - Context (AuthContext) provides global state without prop drilling.
+  - useState handles local component state (form data, modals, loading).
+  - useEffect handles side effects (API calls on mount).
+  - Proper state management ensures UI reflects the current data.
+
+Why APIs are separated:
+  - Clean separation between frontend and backend.
+  - Each API endpoint handles a specific resource/action.
+  - RESTful naming convention (/api/users, /api/tasks, etc.).
+  - Allows independent development and testing.
+  - If needed, the backend can be replaced or multiple frontends can use it.
+
+Why @Transactional is used:
+  - Ensures database operations are atomic - all succeed or all roll back.
+  - Critical for operations that modify multiple entities (e.g., creating a
+    team and assigning members).
+  - Prevents partial updates that could leave data in inconsistent state.
+
+Why cascade = CascadeType.ALL is used on Checklist.items:
+  - When saving a Checklist with new items, cascade ensures items are saved
+    automatically.
+  - When deleting a Checklist, cascade ensures all items are deleted.
+  - Simplifies code by handling related entity lifecycle.
+
+================================================================================
+13. COMMON ISSUES & DEBUGGING
+================================================================================
+
+Issue: Cannot log in - "Invalid username or password"
+  Cause: Wrong credentials, user not found, or password not matching.
+  Fix: Verify username exists in users table. Verify password is BCrypt encoded.
+       Check user status is 'ACTIVE' (not 'INACTIVE', 'SUSPENDED', 'LOCKED').
+
+Issue: Account disabled/locked error
+  Cause: User.status is not 'ACTIVE'.
+  Fix: Update user status to 'ACTIVE' in database or via API.
+
+Issue: JWT token expired
+  Cause: Token validity is 24 hours (86400000ms).
+  Fix: User needs to log in again. Frontend automatically redirects to /login
+       on 401 response via Axios interceptor.
+
+Issue: 403 Forbidden on API calls
+  Cause: User role does not have permission for the endpoint.
+  Fix: Check @PreAuthorize annotations on the controller method. Verify
+       user's role matches the required role.
+
+Issue: Duplicate username/email error (409 Conflict)
+  Cause: Username or email already exists in the database.
+  Fix: Use unique values. GlobalExceptionHandler detects the constraint
+       violation and returns a user-friendly message.
+
+Issue: Data integrity violation when deleting
+  Cause: Trying to delete an entity that is referenced by other entities
+         (e.g., deleting a project that has teams).
+  Fix: Delete child entities first, or set FKs to null before deletion.
+
+Issue: Invalid enum value error (400 Bad Request)
+  Cause: Sending a value that doesn't match the enum (e.g., "URGENT" for
+         TaskPriority which only allows LOW/MEDIUM/HIGH).
+  Fix: GlobalExceptionHandler catches InvalidFormatException and shows
+       allowed values in the error message.
+
+Issue: End date before start date
+  Cause: Validation in ProjectService and ShiftService catches this.
+  Fix: Provide end date that is after start date. Frontend also validates.
+
+Issue: Same person as manager and team lead
+  Cause: TeamService.validateTeamAssignment() prevents this.
+  Fix: Choose different users for manager and team lead roles.
+
+Issue: Checklist progress not updating
+  Cause: Progress is calculated from entity data, not cached. It's computed
+         in the mapToDTO method.
+  Fix: Ensure items are properly loaded (not lazy-loaded when DTO is mapped).
+       The service uses @Transactional(readOnly = true) to ensure lazy loading works.
+
+Issue: CORS errors in browser
+  Cause: Frontend running on port 5173, backend on 8080.
+  Fix: SecurityConfig configures CORS to allow localhost:5173 and :3000.
+       Vite also proxies /api requests to the backend.
+
+Issue: Frontend shows blank page after login
+  Cause: Token not stored properly or user data not parsed from response.
+  Fix: Check localStorage for 'token' and 'user' keys. Ensure the login
+       response matches what AuthContext expects.
+
+Issue: Axios interceptor not redirecting on 401
+  Cause: The error response might not have status 401 (e.g., 403 or 500).
+  Fix: The interceptor only checks for status === 401. Other errors should
+       be handled by individual page error handlers.
+
+Issue: First login password change required
+  Cause: User.firstLogin is true, but the frontend doesn't enforce the change.
+  Fix: The Layout component shows "Change Password" button, but doesn't force
+       it. The backend doesn't block non-password-changed users.
+
+Issue: Database tables not created
+  Cause: spring.jpa.hibernate.ddl-auto is set to "update", not "create".
+  Fix: Ensure PostgreSQL is running and the database "taskmanager" exists.
+       Tables will be auto-created on first run.
+
+================================================================================
+14. FINAL PROJECT SUMMARY
+================================================================================
+
+Overall architecture:
+  The project follows a modern full-stack architecture:
+  - Frontend: Single Page Application (SPA) built with React, Vite, and
+    Tailwind CSS. Communicates with backend via REST APIs.
+  - Backend: Spring Boot REST API with three layers (Controller-Service-
+    Repository). Uses JPA/Hibernate for database access and Spring Security
+    for JWT-based authentication.
+  - Database: PostgreSQL relational database with 10 tables connected through
+    foreign key relationships.
+  - Communication: Frontend ↔ Backend via REST JSON APIs with JWT auth.
+    Backend ↔ Database via Hibernate ORM.
+
+Strengths of project:
+  - Comprehensive role-based access control with 6 distinct roles.
+  - Complete CRUD for all major entities (users, teams, projects, tasks,
+    shifts, checklists, handovers).
+  - Checklist with progress tracking and item-level completion.
+  - Handover workflow with resolve/acknowledge lifecycle.
+  - Dashboard provides real-time KPIs tailored to each user's role.
+  - Audit logging for all important actions.
+  - JWT-based stateless authentication.
+  - Seed data initializer for quick development setup.
+  - Clean separation of concerns with layered architecture.
+  - Validation at both frontend and backend levels.
+
+Current limitations:
+  - No email notification system for task assignments or handovers.
+  - No file upload/attachment support.
+  - No real-time updates (WebSocket/polling for live changes).
+  - No pagination for large lists (all data loaded at once).
+  - No search/filter functionality on list pages.
+  - No automated testing (unit/integration tests are empty).
+  - First login password change is not enforced (just a button).
+  - No password strength requirements beyond minimum 6 characters.
+  - No data export functionality (CSV/PDF).
+  - No mobile-responsive design.
+  - Note service is implemented but no frontend UI for creating/viewing notes.
+  - Audit log viewer exists in backend but has no frontend UI.
+  - No soft delete (entities are permanently deleted).
+  - No caching mechanism for frequently accessed data.
+
+Possible future improvements:
+  - Add email notifications for task assignments and handover creation.
+  - Implement file/image uploads for tasks and handovers.
+  - Add WebSocket for real-time updates (when someone completes a checklist item).
+  - Implement pagination and search/filter for all list pages.
+  - Write comprehensive unit and integration tests.
+  - Enforce password change on first login.
+  - Add password strength requirements and validation.
+  - Add data export functionality (report generation).
+  - Make the UI fully responsive for mobile devices.
+  - Build frontend UI for notes and audit log viewing.
+  - Implement soft delete with restore capability.
+  - Add Redis or in-memory caching for dashboard data.
+  - Add a notification bell/dropdown in the header.
+  - Add calendar view for tasks and shifts.
+  - Add multi-language support (i18n).
+  - Containerize with Docker for easy deployment.
+  - Add CI/CD pipeline configuration.
+
+================================================================================
+                      END OF DOCUMENTATION
+================================================================================

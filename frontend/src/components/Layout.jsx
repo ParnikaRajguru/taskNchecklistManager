@@ -78,17 +78,9 @@ export default function Layout() {
             Welcome, {user?.firstName}
           </h2>
           <div className="flex gap-2">
-            {user?.firstLogin && (
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                className="btn btn-primary text-sm"
-              >
-                Change Password
-              </button>
-            )}
             <button
               onClick={() => setShowPasswordModal(true)}
-              className="btn btn-secondary text-sm"
+              className="btn btn-primary text-sm"
             >
               Change Password
             </button>

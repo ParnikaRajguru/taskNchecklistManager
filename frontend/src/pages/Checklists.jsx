@@ -6,7 +6,6 @@ export default function Checklists() {
   const [checklists, setChecklists] = useState([])
   const [shifts, setShifts] = useState([])
   const [teams, setTeams] = useState([])
-  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -14,19 +13,26 @@ export default function Checklists() {
   const { user } = useAuth()
   const [formData, setFormData] = useState({ title: '', description: '', shiftId: '', teamId: '', items: [] })
   const [newItem, setNewItem] = useState({ title: '', description: '', assignedToId: '' })
+  const [teamUsers, setTeamUsers] = useState([])
 
   useEffect(() => { loadData() }, [])
 
+  useEffect(() => {
+    if (formData.teamId) {
+      userService.getByTeam(formData.teamId).then(res => setTeamUsers(res.data)).catch(() => setTeamUsers([]))
+    } else {
+      setTeamUsers([])
+    }
+  }, [formData.teamId])
+
   const loadData = async () => {
     try {
-      const usersPromise = userService.getAll().catch(() => ({ data: [] }))
-      const [checklistsRes, shiftsRes, teamsRes, usersRes] = await Promise.all([
-        checklistService.getAll(), shiftService.getAll(), teamService.getAll(), usersPromise
+      const [checklistsRes, shiftsRes, teamsRes] = await Promise.all([
+        checklistService.getAll(), shiftService.getAll(), teamService.getAll()
       ])
       setChecklists(checklistsRes.data)
       setShifts(shiftsRes.data)
       setTeams(teamsRes.data)
-      setUsers(usersRes.data)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
@@ -81,7 +87,8 @@ export default function Checklists() {
   }
 
   const resetForm = () => setFormData({ title: '', description: '', shiftId: '', teamId: '', items: [] })
-  const isManager = ['SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD'].includes(user?.role)
+  const canCreate = ['SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD', 'STAFF', 'DEVELOPER', 'TESTER'].includes(user?.role)
+  const canDelete = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
   if (loading) return <div className="text-center py-8">Loading...</div>
 
@@ -89,7 +96,7 @@ export default function Checklists() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Checklists</h1>
-        {isManager && <button onClick={() => { resetForm(); setShowModal(true) }} className="btn btn-primary">Create Checklist</button>}
+        {canCreate && <button onClick={() => { resetForm(); setShowModal(true) }} className="btn btn-primary">Create Checklist</button>}
       </div>
 
       {checklists.length === 0 ? (
@@ -128,7 +135,7 @@ export default function Checklists() {
                   </div>
                 )}
               </div>
-              {isManager && <button onClick={() => handleDelete(checklist.id)} className="text-red-600 hover:text-red-800 ml-2 shrink-0">Delete</button>}
+              {canDelete && <button onClick={() => handleDelete(checklist.id)} className="text-red-600 hover:text-red-800 ml-2 shrink-0">Delete</button>}
             </div>
             <div className="space-y-2">
               {checklist.items?.map((item) => (
@@ -183,7 +190,7 @@ export default function Checklists() {
                     <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{item.title}</span>
-                        {item.assignedToId && <span className="badge badge-blue text-xs">{users.find(u => u.id === Number(item.assignedToId))?.firstName || ''}</span>}
+                        {item.assignedToId && <span className="badge badge-blue text-xs">{teamUsers.find(u => u.id === Number(item.assignedToId))?.firstName || ''}</span>}
                       </div>
                       <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm">Remove</button>
                     </div>
@@ -193,7 +200,7 @@ export default function Checklists() {
                   <input type="text" placeholder="Item title" className="input" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} />
                   <select className="input" value={newItem.assignedToId} onChange={(e) => setNewItem({ ...newItem, assignedToId: e.target.value })}>
                     <option value="">Assign to</option>
-                    {users.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                    {teamUsers.filter(u => u.role !== 'SUPER_ADMIN').map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
                   </select>
                 </div>
                 <button type="button" onClick={addItem} className="btn btn-secondary w-full">Add Item</button>

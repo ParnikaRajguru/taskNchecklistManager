@@ -43,7 +43,7 @@ public class ChecklistController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD', 'STAFF', 'DEVELOPER', 'TESTER')")
     public ResponseEntity<ChecklistDTO> createChecklist(
             @Valid @RequestBody CreateChecklistRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
