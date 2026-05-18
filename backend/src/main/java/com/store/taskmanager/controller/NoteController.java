@@ -1,57 +1,62 @@
 package com.store.taskmanager.controller;
 
-import com.store.taskmanager.dto.*;
+import com.store.taskmanager.dto.NoteDTO;
 import com.store.taskmanager.entity.User;
 import com.store.taskmanager.repository.UserRepository;
 import com.store.taskmanager.service.NoteService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/notes")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class NoteController {
-    
+
     private final NoteService noteService;
     private final UserRepository userRepository;
-    
-    @GetMapping("/by-task/{taskId}")
+
+    @GetMapping("/tasks/{taskId}/notes")
     public ResponseEntity<List<NoteDTO>> getNotesByTask(@PathVariable Long taskId) {
         return ResponseEntity.ok(noteService.getNotesByTask(taskId));
     }
-    
-    @GetMapping("/by-checklist-item/{checklistItemId}")
-    public ResponseEntity<List<NoteDTO>> getNotesByChecklistItem(@PathVariable Long checklistItemId) {
-        return ResponseEntity.ok(noteService.getNotesByChecklistItem(checklistItemId));
-    }
-    
-    @GetMapping("/by-handover/{handoverId}")
-    public ResponseEntity<List<NoteDTO>> getNotesByHandover(@PathVariable Long handoverId) {
-        return ResponseEntity.ok(noteService.getNotesByHandover(handoverId));
-    }
-    
-    @PostMapping
-    public ResponseEntity<NoteDTO> createNote(
-            @Valid @RequestBody CreateNoteRequest request,
+
+    @PostMapping("/tasks/{taskId}/notes")
+    public ResponseEntity<NoteDTO> addNote(
+            @PathVariable Long taskId,
+            @RequestBody Map<String, String> request,
             @AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(noteService.createNote(request, currentUser));
+        String content = request.get("content");
+        return ResponseEntity.ok(noteService.addNote(taskId, content, currentUser));
     }
-    
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteNote(
-            @PathVariable Long id,
+
+    @PutMapping("/notes/{noteId}")
+    public ResponseEntity<NoteDTO> updateNote(
+            @PathVariable Long noteId,
+            @RequestBody Map<String, String> request,
             @AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        noteService.deleteNote(id, currentUser);
-        return ResponseEntity.ok("Note deleted successfully");
+        String content = request.get("content");
+        return ResponseEntity.ok(noteService.updateNote(noteId, content, currentUser));
+    }
+
+    @DeleteMapping("/notes/{noteId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> deleteNote(
+            @PathVariable Long noteId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        noteService.deleteNote(noteId, currentUser);
+        return ResponseEntity.ok().build();
     }
 }

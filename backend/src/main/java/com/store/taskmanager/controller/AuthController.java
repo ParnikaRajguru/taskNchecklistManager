@@ -46,6 +46,14 @@ public class AuthController {
         return ResponseEntity.ok("User created successfully");
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        authService.logout(user);
+        return ResponseEntity.ok("Logged out successfully");
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())

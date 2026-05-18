@@ -5,11 +5,10 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class NoteDTO {
+public class HandoverNoteDTO {
     private Long id;
     private String content;
-    private Long taskId;
-    private String taskTitle;
+    private Long handoverId;
     private Long createdById;
     private String createdByName;
     private Role createdByRole;

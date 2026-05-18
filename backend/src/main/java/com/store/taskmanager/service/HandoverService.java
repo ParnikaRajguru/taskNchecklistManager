@@ -1,7 +1,12 @@
 package com.store.taskmanager.service;
 
 import com.store.taskmanager.dto.*;
-import com.store.taskmanager.entity.*;
+import com.store.taskmanager.entity.Handover;
+import com.store.taskmanager.entity.HandoverNote;
+import com.store.taskmanager.entity.Project;
+import com.store.taskmanager.entity.Shift;
+import com.store.taskmanager.entity.Team;
+import com.store.taskmanager.entity.User;
 import com.store.taskmanager.entity.enums.HandoverPriority;
 import com.store.taskmanager.exception.ResourceNotFoundException;
 import com.store.taskmanager.repository.*;
@@ -197,22 +202,24 @@ public class HandoverService {
 
         if (handover.getNotes() != null) {
             dto.setNotes(handover.getNotes().stream()
-                    .map(this::mapNoteToDTO)
+                    .map(this::mapHandoverNoteToDTO)
                     .collect(Collectors.toList()));
         }
 
         return dto;
     }
 
-    private NoteDTO mapNoteToDTO(Note note) {
-        NoteDTO dto = new NoteDTO();
+    private HandoverNoteDTO mapHandoverNoteToDTO(HandoverNote note) {
+        HandoverNoteDTO dto = new HandoverNoteDTO();
         dto.setId(note.getId());
         dto.setContent(note.getContent());
         dto.setCreatedAt(note.getCreatedAt());
+        dto.setUpdatedAt(note.getUpdatedAt());
 
         if (note.getCreatedBy() != null) {
             dto.setCreatedById(note.getCreatedBy().getId());
-            dto.setCreatedByName(note.getCreatedBy().getFullName());
+            dto.setCreatedByName(note.getCreatedBy().getFirstName() + " " + note.getCreatedBy().getLastName());
+            dto.setCreatedByRole(note.getCreatedBy().getRole());
         }
 
         if (note.getHandover() != null) {

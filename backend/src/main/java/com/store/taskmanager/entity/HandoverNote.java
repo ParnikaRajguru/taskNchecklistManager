@@ -7,11 +7,11 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "task_notes")
+@Table(name = "handover_notes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Note {
+public class HandoverNote {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,8 +20,8 @@ public class Note {
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id", nullable = false)
-    private Task task;
+    @JoinColumn(name = "handover_id", nullable = false)
+    private Handover handover;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

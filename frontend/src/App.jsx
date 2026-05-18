@@ -10,6 +10,7 @@ import Tasks from './pages/Tasks'
 import Shifts from './pages/Shifts'
 import Checklists from './pages/Checklists'
 import Handovers from './pages/Handovers'
+import AuditLogs from './pages/AuditLogs'
 import Layout from './components/Layout'
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
             <Route path="shifts" element={<Shifts />} />
             <Route path="checklists" element={<Checklists />} />
             <Route path="handovers" element={<Handovers />} />
+            <Route path="audit-logs" element={<AuditLogs />} />
           </Route>
         </Routes>
       </BrowserRouter>

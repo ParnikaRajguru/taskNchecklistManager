@@ -28,6 +28,6 @@ public class HandoverDTO {
     private boolean resolved;
     private boolean acknowledged;
     private LocalDateTime acknowledgedAt;
-    private List<NoteDTO> notes;
+    private List<HandoverNoteDTO> notes;
     private LocalDateTime createdAt;
 }

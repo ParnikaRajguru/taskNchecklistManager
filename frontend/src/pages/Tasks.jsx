@@ -1,6 +1,27 @@
 import { useState, useEffect } from 'react'
-import { taskService, projectService, teamService, userService } from '../services/api'
+import { taskService, projectService, teamService, userService, noteService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+
+function getStatusColor(status) {
+  const colors = {
+    TODO: 'blue',
+    IN_PROGRESS: 'yellow',
+    IN_REVIEW: 'purple',
+    TESTING: 'orange',
+    COMPLETED: 'green',
+    BLOCKED: 'red'
+  }
+  return colors[status] || 'gray'
+}
+
+function getPriorityColor(priority) {
+  const colors = {
+    LOW: 'gray',
+    MEDIUM: 'blue',
+    HIGH: 'red'
+  }
+  return colors[priority] || 'gray'
+}
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([])
@@ -10,8 +31,14 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedTask, setSelectedTask] = useState(null)
   const [editingTask, setEditingTask] = useState(null)
   const [error, setError] = useState('')
+  const [notes, setNotes] = useState([])
+  const [newNote, setNewNote] = useState('')
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const [addingNote, setAddingNote] = useState(false)
   const { user } = useAuth()
 
   const [formData, setFormData] = useState({
@@ -31,12 +58,11 @@ export default function Tasks() {
 
   const loadData = async () => {
     try {
-      const tasksPromise = taskService.getAll()
-      const projectsPromise = projectService.getAll()
-      const teamsPromise = teamService.getAll()
-      const usersPromise = userService.getAll().catch(() => ({ data: [] }))
       const [tasksRes, projectsRes, teamsRes, usersRes] = await Promise.all([
-        tasksPromise, projectsPromise, teamsPromise, usersPromise
+        taskService.getAll(),
+        projectService.getAll(),
+        teamService.getAll(),
+        userService.getAll().catch(() => ({ data: [] }))
       ])
       setTasks(tasksRes.data)
       setProjects(projectsRes.data)
@@ -47,13 +73,6 @@ export default function Tasks() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const getErrorMessage = (err) => {
-    if (err.response?.data?.errors) {
-      return Object.values(err.response.data.errors).join(', ')
-    }
-    return err.response?.data?.message || err.message || 'Failed to save task'
   }
 
   const handleSubmit = async (e) => {
@@ -68,19 +87,17 @@ export default function Tasks() {
         assignedToId: formData.assignedToId || null,
         dueDate: formData.dueDate || null
       }
-
       if (editingTask) {
         await taskService.update(editingTask.id, data)
       } else {
         await taskService.create(data)
       }
-
       setShowModal(false)
       setEditingTask(null)
       resetForm()
       loadData()
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(err.response?.data?.message || err.message || 'Failed to save task')
     } finally {
       setSubmitting(false)
     }
@@ -109,6 +126,47 @@ export default function Tasks() {
       } catch (err) {
         alert('Failed to delete task')
       }
+    }
+  }
+
+  const handleViewTask = async (task) => {
+    setSelectedTask(task)
+    setShowDetailsModal(true)
+    setLoadingNotes(true)
+    try {
+      const response = await noteService.getByTask(task.id)
+      setNotes(response.data)
+    } catch (err) {
+      setNotes([])
+    } finally {
+      setLoadingNotes(false)
+    }
+  }
+
+  const handleAddNote = async (e) => {
+    e.preventDefault()
+    if (!newNote.trim()) return
+    setAddingNote(true)
+    try {
+      await noteService.addNote(selectedTask.id, newNote)
+      setNewNote('')
+      const response = await noteService.getByTask(selectedTask.id)
+      setNotes(response.data)
+    } catch (err) {
+      alert('Failed to add note')
+    } finally {
+      setAddingNote(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('Are you sure you want to delete this note?')) return
+    try {
+      await noteService.deleteNote(noteId)
+      const response = await noteService.getByTask(selectedTask.id)
+      setNotes(response.data)
+    } catch (err) {
+      alert('Failed to delete note')
     }
   }
 
@@ -162,7 +220,14 @@ export default function Tasks() {
           <tbody>
             {tasks.map((task) => (
               <tr key={task.id}>
-                <td className="font-medium">{task.title}</td>
+                <td className="font-medium">
+                  <button
+                    onClick={() => handleViewTask(task)}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {task.title}
+                  </button>
+                </td>
                 <td>{task.projectName || '-'}</td>
                 <td>{task.teamName || '-'}</td>
                 <td>{task.assignedToName || '-'}</td>
@@ -179,16 +244,10 @@ export default function Tasks() {
                 <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
                 {isManager && (
                   <td>
-                    <button
-                      onClick={() => handleEdit(task)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
+                    <button onClick={() => handleEdit(task)} className="text-blue-600 hover:text-blue-800 mr-3">
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleDelete(task.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
+                    <button onClick={() => handleDelete(task.id)} className="text-red-600 hover:text-red-800">
                       Delete
                     </button>
                   </td>
@@ -306,27 +365,110 @@ export default function Tasks() {
           </div>
         </div>
       )}
+
+      {showDetailsModal && selectedTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800">{selectedTask.title}</h3>
+                <p className="text-sm text-gray-500">
+                  {selectedTask.projectName && `Project: ${selectedTask.projectName}`}
+                  {selectedTask.teamName && ` | Team: ${selectedTask.teamName}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex gap-2 mb-3">
+                <span className={`badge badge-${getStatusColor(selectedTask.status)}`}>
+                  {selectedTask.status}
+                </span>
+                <span className={`badge badge-${getPriorityColor(selectedTask.priority)}`}>
+                  {selectedTask.priority}
+                </span>
+              </div>
+              {selectedTask.description && (
+                <p className="text-gray-600 mb-2">{selectedTask.description}</p>
+              )}
+              <div className="text-sm text-gray-500">
+                <p>Assigned to: {selectedTask.assignedToName || 'Unassigned'}</p>
+                <p>Due Date: {selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString() : 'Not set'}</p>
+                <p>Created: {selectedTask.createdByName || 'Unknown'}</p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-lg font-semibold mb-3">Notes</h4>
+
+              <form onSubmit={handleAddNote} className="mb-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a note..."
+                    className="input flex-1"
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={addingNote || !newNote.trim()}
+                  >
+                    {addingNote ? 'Adding...' : 'Add'}
+                  </button>
+                </div>
+              </form>
+
+              {loadingNotes ? (
+                <div className="text-center py-4 text-gray-500">Loading notes...</div>
+              ) : notes.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No notes yet</div>
+              ) : (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {notes.map((note) => (
+                    <div key={note.id} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-sm">
+                            {note.createdByName}
+                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                              note.createdByRole === 'SUPER_ADMIN' ? 'bg-red-100 text-red-800' :
+                              note.createdByRole === 'MANAGER' ? 'bg-blue-100 text-blue-800' :
+                              note.createdByRole === 'TEAM_LEAD' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {note.createdByRole}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {note.createdAt ? new Date(note.createdAt).toLocaleString() : ''}
+                          </p>
+                        </div>
+                        {user?.role === 'SUPER_ADMIN' && (
+                          <button
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-2 text-gray-700">{note.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
-}
-
-function getStatusColor(status) {
-  const colors = {
-    TODO: 'blue',
-    IN_PROGRESS: 'yellow',
-    IN_REVIEW: 'purple',
-    TESTING: 'orange',
-    COMPLETED: 'green',
-    BLOCKED: 'red'
-  }
-  return colors[status] || 'gray'
-}
-
-function getPriorityColor(priority) {
-  const colors = {
-    LOW: 'gray',
-    MEDIUM: 'blue',
-    HIGH: 'red'
-  }
-  return colors[priority] || 'gray'
 }

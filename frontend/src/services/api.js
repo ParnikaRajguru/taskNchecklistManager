@@ -36,7 +36,8 @@ export const authService = {
   login: (credentials) => api.post('/auth/login', credentials),
   changePassword: (data) => api.post('/auth/change-password', data),
   createUser: (data) => api.post('/auth/create-user', data),
-  getCurrentUser: () => api.get('/auth/me')
+  getCurrentUser: () => api.get('/auth/me'),
+  logout: () => api.post('/auth/logout')
 }
 
 export const userService = {
@@ -117,22 +118,21 @@ export const handoverService = {
   delete: (id) => api.delete(`/handovers/${id}`)
 }
 
-export const noteService = {
-  getByTask: (taskId) => api.get(`/notes/by-task/${taskId}`),
-  getByChecklistItem: (itemId) => api.get(`/notes/by-checklist-item/${itemId}`),
-  getByHandover: (handoverId) => api.get(`/notes/by-handover/${handoverId}`),
-  create: (data) => api.post('/notes', data),
-  delete: (id) => api.delete(`/notes/${id}`)
-}
-
 export const dashboardService = {
   getData: () => api.get('/dashboard')
 }
 
 export const auditService = {
-  getAll: () => api.get('/audit-logs'),
-  getRecent: (days) => api.get(`/audit-logs/recent?days=${days}`),
-  getByUser: (userId) => api.get(`/audit-logs/by-user/${userId}`)
+  getAll: () => api.get('/audit-logs', { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }),
+  getRecent: (days) => api.get(`/audit-logs/recent?days=${days}`, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }),
+  getByUser: (userId) => api.get(`/audit-logs/by-user/${userId}`, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
+}
+
+export const noteService = {
+  getByTask: (taskId) => api.get(`/tasks/${taskId}/notes`),
+  addNote: (taskId, content) => api.post(`/tasks/${taskId}/notes`, { content }),
+  updateNote: (noteId, content) => api.put(`/notes/${noteId}`, { content }),
+  deleteNote: (noteId) => api.delete(`/notes/${noteId}`)
 }
 
 export default api

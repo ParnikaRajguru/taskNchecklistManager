@@ -1,5 +1,6 @@
 package com.store.taskmanager.dto;
 
+import com.store.taskmanager.entity.enums.Role;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -13,5 +14,6 @@ public class AuditLogDTO {
     private String newValue;
     private Long performedById;
     private String performedByName;
+    private Role performedByRole;
     private LocalDateTime timestamp;
 }

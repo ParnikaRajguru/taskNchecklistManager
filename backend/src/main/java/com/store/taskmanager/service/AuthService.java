@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final AuditLogService auditLogService;
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("Invalid username or password"));
@@ -32,6 +34,8 @@ public class AuthService {
         );
 
         String token = tokenProvider.generateToken(authentication);
+
+        auditLogService.log("LOGIN", "User", user.getId(), null, "user logged in", user);
 
         return new LoginResponse(
                 token,
@@ -93,5 +97,12 @@ public class AuthService {
         userRepository.save(user);
 
         auditLogService.log("USER_CREATED", "User", user.getId(), null, "user created", currentUser);
+    }
+
+    @Transactional
+    public void logout(User user) {
+        if (user != null) {
+            auditLogService.log("LOGOUT", "User", user.getId(), null, "user logged out", user);
+        }
     }
 }

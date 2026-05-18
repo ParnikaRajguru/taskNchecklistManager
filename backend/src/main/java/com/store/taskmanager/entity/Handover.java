@@ -68,7 +68,7 @@ public class Handover {
     private LocalDateTime acknowledgedAt;
 
     @OneToMany(mappedBy = "handover", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Note> notes = new ArrayList<>();
+    private List<HandoverNote> notes = new ArrayList<>();
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

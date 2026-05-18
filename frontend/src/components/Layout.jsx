@@ -23,7 +23,8 @@ export default function Layout() {
     { path: '/users', label: 'Users', icon: '👤', show: isManager || isTeamLead },
     { path: '/shifts', label: 'Shifts', icon: '⏰', show: !isTeamLead ? true : false },
     { path: '/checklists', label: 'Checklists', icon: '📋', show: true },
-    { path: '/handovers', label: 'Handovers', icon: '🔄', show: true }
+    { path: '/handovers', label: 'Handovers', icon: '🔄', show: true },
+    { path: '/audit-logs', label: 'Audit Logs', icon: '📜', show: isManager }
   ]
 
   return (

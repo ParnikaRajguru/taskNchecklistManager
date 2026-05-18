@@ -9,9 +9,15 @@ import java.util.List;
 
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
-    List<AuditLog> findByPerformedById(Long userId);
-    List<AuditLog> findByEntityTypeAndEntityId(String entityType, Long entityId);
-    
+    List<AuditLog> findByPerformedByIdOrderByTimestampDesc(Long userId);
+    List<AuditLog> findByEntityTypeAndEntityIdOrderByTimestampDesc(String entityType, Long entityId);
+
     @Query("SELECT a FROM AuditLog a WHERE a.timestamp >= ?1 ORDER BY a.timestamp DESC")
     List<AuditLog> findRecentLogs(LocalDateTime since);
+
+    @Query("SELECT a FROM AuditLog a WHERE a.performedBy.role != 'SUPER_ADMIN' ORDER BY a.timestamp DESC")
+    List<AuditLog> findAllNonAdminLogs();
+
+    @Query("SELECT a FROM AuditLog a ORDER BY a.timestamp DESC")
+    List<AuditLog> findAllLogsOrdered();
 }
