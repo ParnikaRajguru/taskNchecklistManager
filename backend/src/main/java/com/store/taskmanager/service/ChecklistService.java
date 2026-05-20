@@ -2,6 +2,8 @@ package com.store.taskmanager.service;
 
 import com.store.taskmanager.dto.*;
 import com.store.taskmanager.entity.*;
+import com.store.taskmanager.exception.AccessDeniedException;
+import com.store.taskmanager.exception.BadRequestException;
 import com.store.taskmanager.exception.ResourceNotFoundException;
 import com.store.taskmanager.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -25,28 +27,90 @@ public class ChecklistService {
     private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
-    public List<ChecklistDTO> getAllChecklists() {
-        return checklistRepository.findAll().stream()
+    public List<ChecklistDTO> getAllChecklists(User currentUser) {
+        List<Checklist> checklists;
+
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            checklists = checklistRepository.findAll();
+        } else if (role.equals("MANAGER")) {
+            checklists = checklistRepository.findByTeamManagerId(currentUser.getId());
+        } else if (role.equals("TEAM_LEAD")) {
+            if (currentUser.getTeam() != null) {
+                checklists = checklistRepository.findByTeamId(currentUser.getTeam().getId());
+            } else {
+                checklists = new ArrayList<>();
+            }
+        } else {
+            if (currentUser.getTeam() != null) {
+                checklists = checklistRepository.findByTeamId(currentUser.getTeam().getId());
+            } else {
+                checklists = new ArrayList<>();
+            }
+        }
+
+        return checklists.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public ChecklistDTO getChecklistById(Long id) {
+    public ChecklistDTO getChecklistById(Long id, User currentUser) {
         Checklist checklist = checklistRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Checklist not found with id: " + id));
+
+        validateChecklistAccess(checklist, currentUser);
+
         return mapToDTO(checklist);
     }
 
     @Transactional(readOnly = true)
-    public List<ChecklistDTO> getChecklistsByShift(Long shiftId) {
+    public List<ChecklistDTO> getChecklistsByShift(Long shiftId, User currentUser) {
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            return checklistRepository.findByShiftId(shiftId).stream()
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
+        if (role.equals("MANAGER")) {
+            return checklistRepository.findByShiftId(shiftId).stream()
+                    .filter(c -> c.getTeam() != null && c.getTeam().getManager() != null && c.getTeam().getManager().getId().equals(currentUser.getId()))
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
+
+        if (currentUser.getTeam() == null) {
+            return new ArrayList<>();
+        }
+
         return checklistRepository.findByShiftId(shiftId).stream()
+                .filter(c -> c.getTeam() != null && c.getTeam().getId().equals(currentUser.getTeam().getId()))
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ChecklistDTO> getChecklistsByTeam(Long teamId) {
+    public List<ChecklistDTO> getChecklistsByTeam(Long teamId, User currentUser) {
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            return checklistRepository.findByTeamId(teamId).stream()
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
+        if (role.equals("MANAGER")) {
+            return checklistRepository.findByTeamId(teamId).stream()
+                    .filter(c -> c.getTeam() != null && c.getTeam().getManager() != null && c.getTeam().getManager().getId().equals(currentUser.getId()))
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
+
+        if (currentUser.getTeam() == null || !currentUser.getTeam().getId().equals(teamId)) {
+            return new ArrayList<>();
+        }
+
         return checklistRepository.findByTeamId(teamId).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -54,6 +118,30 @@ public class ChecklistService {
 
     @Transactional
     public ChecklistDTO createChecklist(CreateChecklistRequest request, User currentUser) {
+        String role = currentUser.getRole().name();
+
+        Team team = null;
+        if (request.getTeamId() != null) {
+            team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+
+            if (!role.equals("SUPER_ADMIN") && !role.equals("MANAGER")) {
+                if (currentUser.getTeam() == null || !currentUser.getTeam().getId().equals(team.getId())) {
+                    throw new AccessDeniedException("You can only create checklists for your own team");
+                }
+            }
+        } else {
+            if (!role.equals("SUPER_ADMIN") && !role.equals("MANAGER")) {
+                if (currentUser.getTeam() != null) {
+                    team = currentUser.getTeam();
+                } else {
+                    throw new BadRequestException("You must select a team for the checklist");
+                }
+            }
+        }
+
+        // Self assignment check and hierarchy validation will be done when processing items below
+
         Checklist checklist = new Checklist();
         checklist.setTitle(request.getTitle());
         checklist.setDescription(request.getDescription());
@@ -65,9 +153,7 @@ public class ChecklistService {
             checklist.setShift(shift);
         }
 
-        if (request.getTeamId() != null) {
-            Team team = teamRepository.findById(request.getTeamId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+        if (team != null) {
             checklist.setTeam(team);
         }
 
@@ -82,6 +168,9 @@ public class ChecklistService {
                 if (itemRequest.getAssignedToId() != null) {
                     User assignedTo = userRepository.findById(itemRequest.getAssignedToId())
                             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                    AssignmentValidator.validate(currentUser, assignedTo, team);
+
                     item.setAssignedTo(assignedTo);
                 }
 
@@ -134,9 +223,143 @@ public class ChecklistService {
         Checklist checklist = checklistRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Checklist not found with id: " + id));
 
+        validateChecklistDeleteAccess(checklist, currentUser);
+
         auditLogService.log("CHECKLIST_DELETED", "Checklist", id, null, "checklist deleted: " + checklist.getTitle(), currentUser);
 
         checklistRepository.delete(checklist);
+    }
+
+    @Transactional
+    public ChecklistDTO updateChecklist(Long id, CreateChecklistRequest request, User currentUser) {
+        Checklist checklist = checklistRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Checklist not found with id: " + id));
+
+        validateChecklistEditAccess(checklist, currentUser);
+
+        String role = currentUser.getRole().name();
+
+        if (request.getTeamId() != null) {
+            Team team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+
+            if (!role.equals("SUPER_ADMIN") && !role.equals("MANAGER")) {
+                if (currentUser.getTeam() == null || !currentUser.getTeam().getId().equals(team.getId())) {
+                    throw new AccessDeniedException("You can only assign checklists to your own team");
+                }
+            }
+        }
+
+        // Self assignment check and hierarchy validation will be done when processing items below
+
+        checklist.setTitle(request.getTitle());
+        checklist.setDescription(request.getDescription());
+
+        if (request.getShiftId() != null) {
+            Shift shift = shiftRepository.findById(request.getShiftId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
+            checklist.setShift(shift);
+        } else {
+            checklist.setShift(null);
+        }
+
+        Team team = checklist.getTeam();
+        if (request.getTeamId() != null) {
+            team = teamRepository.findById(request.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+            checklist.setTeam(team);
+        }
+
+        checklist.getItems().clear();
+
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            for (CreateChecklistItemRequest itemRequest : request.getItems()) {
+                ChecklistItem item = new ChecklistItem();
+                item.setTitle(itemRequest.getTitle());
+                item.setDescription(itemRequest.getDescription());
+                item.setChecklist(checklist);
+
+                if (itemRequest.getAssignedToId() != null) {
+                    User assignedTo = userRepository.findById(itemRequest.getAssignedToId())
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                    AssignmentValidator.validate(currentUser, assignedTo, team);
+
+                    item.setAssignedTo(assignedTo);
+                }
+
+                checklist.getItems().add(item);
+            }
+        }
+
+        checklistRepository.save(checklist);
+
+        auditLogService.log("CHECKLIST_UPDATED", "Checklist", id, null, "checklist updated: " + checklist.getTitle(), currentUser);
+
+        return mapToDTO(checklist);
+    }
+
+    private void validateChecklistAccess(Checklist checklist, User currentUser) {
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            return;
+        }
+
+        if (role.equals("MANAGER")) {
+            if (checklist.getTeam() != null && checklist.getTeam().getManager() != null && checklist.getTeam().getManager().getId().equals(currentUser.getId())) {
+                return;
+            }
+            throw new AccessDeniedException("You do not have access to this checklist");
+        }
+
+        if (checklist.getTeam() == null) {
+            throw new AccessDeniedException("You do not have access to this checklist");
+        }
+
+        if (currentUser.getTeam() == null || !currentUser.getTeam().getId().equals(checklist.getTeam().getId())) {
+            throw new AccessDeniedException("You do not have access to this checklist");
+        }
+    }
+
+    private void validateChecklistDeleteAccess(Checklist checklist, User currentUser) {
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            return;
+        }
+
+        if (role.equals("MANAGER")) {
+            if (checklist.getTeam() != null && checklist.getTeam().getManager() != null && checklist.getTeam().getManager().getId().equals(currentUser.getId())) {
+                return;
+            }
+            throw new AccessDeniedException("You do not have access to delete this checklist");
+        }
+
+        throw new AccessDeniedException("Only Super Admin and Manager can delete checklists");
+    }
+
+    private void validateChecklistEditAccess(Checklist checklist, User currentUser) {
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            return;
+        }
+
+        if (role.equals("MANAGER")) {
+            if (checklist.getTeam() != null && checklist.getTeam().getManager() != null && checklist.getTeam().getManager().getId().equals(currentUser.getId())) {
+                return;
+            }
+            throw new AccessDeniedException("You do not have access to edit this checklist");
+        }
+
+        if (checklist.getTeam() == null) {
+            throw new AccessDeniedException("You do not have access to edit this checklist");
+        }
+
+        if (currentUser.getTeam() == null || !currentUser.getTeam().getId().equals(checklist.getTeam().getId())) {
+            throw new AccessDeniedException("You do not have access to edit this checklist");
+        }
     }
 
     private ChecklistDTO mapToDTO(Checklist checklist) {

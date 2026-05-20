@@ -40,11 +40,12 @@ export default function Teams() {
     setSubmitting(true)
     try {
       const data = {
-        ...formData,
-        projectId: formData.projectId || null,
-        managerId: formData.managerId || null,
-        teamLeadId: formData.teamLeadId || null,
-        memberIds: formData.memberIds || []
+        name: formData.name,
+        description: formData.description || null,
+        projectId: formData.projectId ? Number(formData.projectId) : null,
+        managerId: formData.managerId ? Number(formData.managerId) : null,
+        teamLeadId: formData.teamLeadId ? Number(formData.teamLeadId) : null,
+        memberIds: (formData.memberIds || []).filter(id => id && id > 0)
       }
       if (editingTeam) await teamService.update(editingTeam.id, data)
       else await teamService.create(data)
@@ -73,9 +74,16 @@ export default function Teams() {
   }
 
   const handleDelete = async (id) => {
-    if (confirm('Delete this team?')) {
-      try { await teamService.delete(id); loadData() }
-      catch (err) { alert('Failed to delete') }
+    if (confirm('Delete this team? This will unassign all members and tasks.')) {
+      try {
+        await teamService.delete(id)
+        alert('Team deleted successfully')
+        loadData()
+      }
+      catch (err) {
+        const msg = err.response?.data?.message || err.response?.data || 'Failed to delete team'
+        alert(typeof msg === 'object' ? JSON.stringify(msg) : msg)
+      }
     }
   }
 
@@ -93,6 +101,46 @@ export default function Teams() {
   const managers = users.filter(u => u.role === 'MANAGER')
   const teamLeads = users.filter(u => u.role === 'TEAM_LEAD')
   const memberPool = users.filter(u => ['STAFF', 'DEVELOPER', 'TESTER'].includes(u.role))
+
+  const assignedProjectIds = teams.map(t => t.projectId).filter(id => id != null)
+  const availableProjects = projects.filter(p => !assignedProjectIds.includes(p.id) || p.id === editingTeam?.projectId)
+
+  const managerTeamCounts = {}
+  teams.forEach(t => {
+    if (t.managerId) {
+      managerTeamCounts[t.managerId] = (managerTeamCounts[t.managerId] || 0) + 1
+    }
+  })
+
+  const teamLeadIdsInOtherTeams = new Set(
+    teams
+      .filter(t => t.id !== editingTeam?.id && t.teamLeadId)
+      .map(t => t.teamLeadId)
+  )
+  const memberIdsInOtherTeams = new Set(
+    teams
+      .filter(t => t.id !== editingTeam?.id)
+      .flatMap(t => t.memberIds || [])
+  )
+
+  const availableManagers = managers.filter(u => {
+    if (u.id === Number(formData.managerId)) return true
+    if (editingTeam && u.id === editingTeam.managerId) return true
+    const currentCount = managerTeamCounts[u.id] || 0
+    return currentCount < 3
+  })
+  const availableTeamLeads = teamLeads.filter(u => {
+    if (u.id === Number(formData.teamLeadId)) return true
+    if (editingTeam && u.id === editingTeam.teamLeadId) return true
+    return !teamLeadIdsInOtherTeams.has(u.id)
+  })
+  const availableMembers = memberPool.filter(u => {
+    if (formData.memberIds.includes(u.id)) return true
+    if (u.id === Number(formData.managerId) || u.id === Number(formData.teamLeadId)) return false
+    if (memberIdsInOtherTeams.has(u.id)) return false
+    if (editingTeam && editingTeam.memberIds && editingTeam.memberIds.includes(u.id)) return true
+    return true
+  })
 
   const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
@@ -113,7 +161,10 @@ export default function Teams() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams.map((team) => (
             <div key={team.id} className="card">
-              <h3 className="font-semibold text-lg mb-2">{team.name}</h3>
+              <div className="flex justify-between items-start mb-1">
+                <h3 className="font-semibold text-lg">{team.name}</h3>
+                <span className="text-xs font-mono text-gray-400">{team.publicId}</span>
+              </div>
               <p className="text-gray-500 text-sm mb-3">{team.description || 'No description'}</p>
               <div className="text-sm text-gray-500 mb-3">
                 <p>Project: {team.projectName || 'None'}</p>
@@ -153,7 +204,7 @@ export default function Teams() {
               <textarea placeholder="Description" className="input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
               <select className="input" value={formData.projectId} onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}>
                 <option value="">Select Project</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {availableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
 
               <div>
@@ -167,7 +218,7 @@ export default function Teams() {
                   }))
                 }}>
                   <option value="">Select Manager</option>
-                  {managers.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+                  {availableManagers.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
                 </select>
               </div>
 
@@ -182,7 +233,7 @@ export default function Teams() {
                   }))
                 }}>
                   <option value="">Select Team Lead</option>
-                  {teamLeads.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+                  {availableTeamLeads.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
                 </select>
               </div>
 
@@ -192,8 +243,7 @@ export default function Teams() {
                   <span className="text-xs text-gray-400 ml-1">(Staff, Developer, Tester)</span>
                 </label>
                 <div className="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1">
-                  {memberPool
-                    .filter(u => u.id !== Number(formData.managerId) && u.id !== Number(formData.teamLeadId))
+                  {availableMembers
                     .map((u) => (
                     <label key={u.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                       <input
@@ -205,7 +255,7 @@ export default function Teams() {
                       <span className="text-sm">{u.firstName} {u.lastName} ({u.role})</span>
                     </label>
                   ))}
-                  {memberPool.filter(u => u.id !== Number(formData.managerId) && u.id !== Number(formData.teamLeadId)).length === 0 && (
+                  {availableMembers.length === 0 && (
                     <p className="text-xs text-gray-400 text-center py-2">No members available</p>
                   )}
                 </div>

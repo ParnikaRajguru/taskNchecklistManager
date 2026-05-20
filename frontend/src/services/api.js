@@ -59,7 +59,8 @@ export const teamService = {
   getMyTeam: () => api.get('/teams/my-team'),
   create: (data) => api.post('/teams', data),
   update: (id, data) => api.put(`/teams/${id}`, data),
-  delete: (id) => api.delete(`/teams/${id}`)
+  delete: (id) => api.delete(`/teams/${id}`),
+  syncUsers: () => api.post('/teams/sync-users')
 }
 
 export const projectService = {
@@ -100,6 +101,7 @@ export const checklistService = {
   getByShift: (shiftId) => api.get(`/checklists/by-shift/${shiftId}`),
   getByTeam: (teamId) => api.get(`/checklists/by-team/${teamId}`),
   create: (data) => api.post('/checklists', data),
+  update: (id, data) => api.put(`/checklists/${id}`, data),
   completeItem: (itemId) => api.put(`/checklists/items/${itemId}/complete`),
   uncompleteItem: (itemId) => api.put(`/checklists/items/${itemId}/uncomplete`),
   delete: (id) => api.delete(`/checklists/${id}`)

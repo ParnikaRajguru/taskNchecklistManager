@@ -31,8 +31,8 @@ export default function Dashboard() {
     { label: 'Pending', value: data?.pendingTasks || 0, color: 'yellow' },
     { label: 'Completed', value: data?.completedTasks || 0, color: 'green' },
     { label: 'Overdue', value: data?.overdueTasks || 0, color: 'red' },
-    { label: 'Blocked', value: data?.blockedTasks || 0, color: 'purple' },
-    { label: 'Completed Today', value: data?.completedToday || 0, color: 'teal' },
+    { label: 'Total Projects', value: data?.totalProjects || 0, color: 'indigo' },
+    { label: 'Total Teams', value: data?.totalTeams || 0, color: 'cyan' },
     { label: 'Pending Checklist', value: data?.pendingChecklistItemsCount || 0, color: 'orange' },
     { label: 'Delayed Checklists', value: data?.delayedChecklists || 0, color: 'pink' }
   ]
@@ -81,56 +81,25 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Pending Handovers</h3>
+          <h3 className="text-lg font-semibold mb-4">Pending Checklist Items</h3>
           <div className="space-y-3">
-            {data?.pendingHandovers?.length > 0 ? (
-              data.pendingHandovers.map((handover) => (
-                <div key={handover.id} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium text-gray-800">{handover.title}</p>
-                  <p className="text-sm text-gray-500">
-                    From: {handover.fromShiftName} → To: {handover.toShiftName}
-                  </p>
+            {data?.pendingChecklistItems?.length > 0 ? (
+              data.pendingChecklistItems.slice(0, 5).map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{item.title}</p>
+                  </div>
+                  {item.assignedToName && (
+                    <span className="text-sm text-gray-500">{item.assignedToName}</span>
+                  )}
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-4">No pending handovers</p>
+              <p className="text-gray-500 text-center py-4">No pending items</p>
             )}
           </div>
         </div>
       </div>
-
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Pending Checklist Items</h3>
-        <div className="space-y-3">
-          {data?.pendingChecklistItems?.length > 0 ? (
-            data.pendingChecklistItems.slice(0, 5).map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{item.title}</p>
-                </div>
-                {item.assignedToName && (
-                  <span className="text-sm text-gray-500">{item.assignedToName}</span>
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500 text-center py-4">No pending items</p>
-          )}
-        </div>
-      </div>
-
-      {isManager && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Pending Approvals</h3>
-            <p className="text-3xl font-bold text-blue-600">{data?.pendingApprovals || 0}</p>
-          </div>
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Missed Handovers</h3>
-            <p className="text-3xl font-bold text-red-600">{data?.missedHandovers || 0}</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

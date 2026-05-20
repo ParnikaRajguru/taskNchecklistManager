@@ -23,23 +23,31 @@ public class ChecklistController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public ResponseEntity<List<ChecklistDTO>> getAllChecklists() {
-        return ResponseEntity.ok(checklistService.getAllChecklists());
+    public ResponseEntity<List<ChecklistDTO>> getAllChecklists(@AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(checklistService.getAllChecklists(currentUser));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ChecklistDTO> getChecklistById(@PathVariable Long id) {
-        return ResponseEntity.ok(checklistService.getChecklistById(id));
+    public ResponseEntity<ChecklistDTO> getChecklistById(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(checklistService.getChecklistById(id, currentUser));
     }
 
     @GetMapping("/by-shift/{shiftId}")
-    public ResponseEntity<List<ChecklistDTO>> getChecklistsByShift(@PathVariable Long shiftId) {
-        return ResponseEntity.ok(checklistService.getChecklistsByShift(shiftId));
+    public ResponseEntity<List<ChecklistDTO>> getChecklistsByShift(@PathVariable Long shiftId, @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(checklistService.getChecklistsByShift(shiftId, currentUser));
     }
 
     @GetMapping("/by-team/{teamId}")
-    public ResponseEntity<List<ChecklistDTO>> getChecklistsByTeam(@PathVariable Long teamId) {
-        return ResponseEntity.ok(checklistService.getChecklistsByTeam(teamId));
+    public ResponseEntity<List<ChecklistDTO>> getChecklistsByTeam(@PathVariable Long teamId, @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(checklistService.getChecklistsByTeam(teamId, currentUser));
     }
 
     @PostMapping
@@ -50,6 +58,17 @@ public class ChecklistController {
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(checklistService.createChecklist(request, currentUser));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD', 'STAFF', 'DEVELOPER', 'TESTER')")
+    public ResponseEntity<ChecklistDTO> updateChecklist(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateChecklistRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(checklistService.updateChecklist(id, request, currentUser));
     }
 
     @PutMapping("/items/{itemId}/complete")

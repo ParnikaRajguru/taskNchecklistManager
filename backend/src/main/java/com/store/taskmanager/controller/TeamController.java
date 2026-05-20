@@ -26,10 +26,11 @@ public class TeamController {
     public ResponseEntity<List<TeamDTO>> getAllTeams(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                user.getRole().name().equals("MANAGER");
-        if (isManager) {
+        if (user.getRole().name().equals("SUPER_ADMIN")) {
             return ResponseEntity.ok(teamService.getAllTeams());
+        }
+        if (user.getRole().name().equals("MANAGER")) {
+            return ResponseEntity.ok(teamService.getTeamsByManager(user.getId()));
         }
         List<TeamDTO> teams = new java.util.ArrayList<>();
         if (user.getTeam() != null) {
@@ -88,5 +89,11 @@ public class TeamController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         teamService.deleteTeam(id, currentUser);
         return ResponseEntity.ok("Team deleted successfully");
+    }
+
+    @PostMapping("/sync-users")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<String> syncUserTeamRelationships() {
+        return ResponseEntity.ok(teamService.syncUserTeamRelationships());
     }
 }

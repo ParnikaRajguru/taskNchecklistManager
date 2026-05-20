@@ -21,10 +21,14 @@ public class HandoverNote {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "handover_id", nullable = false)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Handover handover;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private User createdBy;
 
     private LocalDateTime createdAt;

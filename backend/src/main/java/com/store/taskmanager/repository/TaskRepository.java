@@ -15,6 +15,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByAssignedToId(Long userId);
     List<Task> findByStatus(TaskStatus status);
     List<Task> findByCreatedById(Long userId);
+    List<Task> findByTeamManagerId(Long managerId);
 
     @Query("SELECT t FROM Task t WHERE t.assignedTo.id = ?1 AND t.status != 'COMPLETED'")
     List<Task> findPendingTasksByUserId(Long userId);

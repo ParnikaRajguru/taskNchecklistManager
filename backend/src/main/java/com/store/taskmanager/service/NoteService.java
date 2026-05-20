@@ -27,6 +27,22 @@ public class NoteService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
 
+        // Check if user has access to this task
+        String role = currentUser.getRole().name();
+        boolean hasAccess = false;
+
+        if (role.equals("SUPER_ADMIN") || role.equals("MANAGER") || role.equals("TEAM_LEAD")) {
+            hasAccess = true; // These roles can add notes to any accessible task
+        } else if (task.getAssignedTo() != null && task.getAssignedTo().getId().equals(currentUser.getId())) {
+            hasAccess = true; // Can add notes to own tasks
+        } else if (task.getTeam() != null && currentUser.getTeam() != null && task.getTeam().getId().equals(currentUser.getTeam().getId())) {
+            hasAccess = true; // Can add notes to team tasks
+        }
+
+        if (!hasAccess) {
+            throw new com.store.taskmanager.exception.AccessDeniedException("You don't have access to this task");
+        }
+
         Note note = new Note();
         note.setContent(content);
         note.setTask(task);
@@ -46,9 +62,14 @@ public class NoteService {
     }
 
     @Transactional
-    public NoteDTO updateNote(Long noteId, String content, User currentUser) {
+    public NoteDTO updateNote(Long noteId, String content, User currentUser, boolean isAdmin) {
         Note note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + noteId));
+
+        // Allow only the note creator or admin to update
+        if (!isAdmin && !note.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new com.store.taskmanager.exception.AccessDeniedException("You can only update your own notes");
+        }
 
         String oldContent = note.getContent();
         note.setContent(content);

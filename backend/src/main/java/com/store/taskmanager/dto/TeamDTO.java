@@ -7,6 +7,7 @@ import java.util.List;
 @Data
 public class TeamDTO {
     private Long id;
+    private String publicId;
     private String name;
     private String description;
     private Long projectId;

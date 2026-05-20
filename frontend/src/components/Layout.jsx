@@ -24,7 +24,7 @@ export default function Layout() {
     { path: '/shifts', label: 'Shifts', icon: '⏰', show: !isTeamLead ? true : false },
     { path: '/checklists', label: 'Checklists', icon: '📋', show: true },
     { path: '/handovers', label: 'Handovers', icon: '🔄', show: true },
-    { path: '/audit-logs', label: 'Audit Logs', icon: '📜', show: isManager }
+    { path: '/audit-logs', label: 'Audit Logs', icon: '📜', show: isManager || isTeamLead }
   ]
 
   return (

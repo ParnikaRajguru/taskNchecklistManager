@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react'
 import { taskService, projectService, teamService, userService, noteService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
+const TASK_STATUSES = {
+  CREATE: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'TESTING', 'BLOCKED'],
+  EDIT: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'TESTING', 'BLOCKED', 'COMPLETED']
+}
+
 function getStatusColor(status) {
   const colors = {
     TODO: 'blue',
@@ -12,6 +17,18 @@ function getStatusColor(status) {
     BLOCKED: 'red'
   }
   return colors[status] || 'gray'
+}
+
+function getStatusLabel(status) {
+  const labels = {
+    TODO: 'Todo',
+    IN_PROGRESS: 'In Progress',
+    IN_REVIEW: 'In Review',
+    TESTING: 'Testing',
+    COMPLETED: 'Completed',
+    BLOCKED: 'Blocked'
+  }
+  return labels[status] || status
 }
 
 function getPriorityColor(priority) {
@@ -25,6 +42,8 @@ function getPriorityColor(priority) {
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([])
+  const [activeTasks, setActiveTasks] = useState([])
+  const [completedTasks, setCompletedTasks] = useState([])
   const [projects, setProjects] = useState([])
   const [teams, setTeams] = useState([])
   const [users, setUsers] = useState([])
@@ -65,6 +84,10 @@ export default function Tasks() {
         userService.getAll().catch(() => ({ data: [] }))
       ])
       setTasks(tasksRes.data)
+      const active = tasksRes.data.filter(t => t.status !== 'COMPLETED')
+      const completed = tasksRes.data.filter(t => t.status === 'COMPLETED')
+      setActiveTasks(active)
+      setCompletedTasks(completed)
       setProjects(projectsRes.data)
       setTeams(teamsRes.data)
       setUsers(usersRes.data)
@@ -185,6 +208,117 @@ export default function Tasks() {
 
   const isManager = ['SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD'].includes(user?.role)
 
+  const getFilteredProjects = () => {
+    if (!user) return []
+    const role = user.role
+    const selfId = user.id
+    
+    if (role === 'SUPER_ADMIN') {
+      return projects
+    }
+    
+    if (role === 'MANAGER') {
+      const managedProjectsIds = teams
+        .filter(t => t.managerId === selfId)
+        .map(t => t.projectId)
+        .filter(Boolean)
+      return projects.filter(p => managedProjectsIds.includes(p.id))
+    }
+    
+    const ownTeam = teams.find(t => t.id === user.teamId)
+    if (ownTeam && ownTeam.projectId) {
+      return projects.filter(p => p.id === ownTeam.projectId)
+    }
+    
+    return []
+  }
+
+  const getFilteredTeams = () => {
+    if (!user) return []
+    const role = user.role
+    const selfId = user.id
+    const selectedProjectId = formData.projectId ? Number(formData.projectId) : null
+    
+    let filtered = teams
+    
+    if (role === 'MANAGER') {
+      filtered = teams.filter(t => t.managerId === selfId)
+    } else if (role !== 'SUPER_ADMIN') {
+      if (user.teamId) {
+        filtered = teams.filter(t => t.id === user.teamId)
+      } else {
+        filtered = []
+      }
+    }
+    
+    if (selectedProjectId) {
+      filtered = filtered.filter(t => t.projectId === selectedProjectId)
+    }
+    
+    return filtered
+  }
+
+  const getFilteredUsers = () => {
+    if (!user) return []
+    const role = user.role
+    const selfId = user.id
+    const currentTeamId = formData.teamId ? Number(formData.teamId) : null
+    const isStaffLevel = (r) => ['STAFF', 'DEVELOPER', 'TESTER'].includes(r)
+
+    if (role === 'SUPER_ADMIN') {
+      let filtered = users.filter(u => u.id !== selfId)
+      if (currentTeamId) {
+        filtered = filtered.filter(u => u.teamId === currentTeamId)
+      }
+      return filtered
+    }
+
+    if (role === 'MANAGER') {
+      const managedTeamIds = teams.filter(t => t.managerId === selfId).map(t => t.id)
+      
+      return users.filter(u => {
+        if (u.id === selfId) return false
+        if (u.role === 'SUPER_ADMIN' || u.role === 'MANAGER') return false
+        
+        if (currentTeamId) {
+          return u.teamId === currentTeamId && managedTeamIds.includes(currentTeamId)
+        }
+        
+        return u.teamId && managedTeamIds.includes(u.teamId)
+      })
+    }
+
+    if (role === 'TEAM_LEAD') {
+      const leadTeamId = user.teamId
+      if (!leadTeamId) return []
+      
+      return users.filter(u => {
+        if (u.id === selfId) return false
+        if (u.role === 'SUPER_ADMIN' || u.role === 'MANAGER' || u.role === 'TEAM_LEAD') return false
+        
+        if (currentTeamId && currentTeamId !== leadTeamId) return false
+        
+        return u.teamId === leadTeamId
+      })
+    }
+
+    if (isStaffLevel(role)) {
+      const staffTeamId = user.teamId
+      if (!staffTeamId) return []
+      
+      return users.filter(u => {
+        if (u.id === selfId) return false
+        if (u.role === 'SUPER_ADMIN' || u.role === 'MANAGER' || u.role === 'TEAM_LEAD') return false
+        
+        if (currentTeamId && currentTeamId !== staffTeamId) return false
+        
+        return u.teamId === staffTeamId
+      })
+    }
+
+    return []
+  }
+
   if (loading) {
     return <div className="text-center py-8">Loading...</div>
   }
@@ -203,64 +337,133 @@ export default function Tasks() {
         )}
       </div>
 
-      <div className="card overflow-hidden">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Project</th>
-              <th>Team</th>
-              <th>Assigned To</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Due Date</th>
-              {isManager && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task) => (
-              <tr key={task.id}>
-                <td className="font-medium">
-                  <button
-                    onClick={() => handleViewTask(task)}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    {task.title}
-                  </button>
-                </td>
-                <td>{task.projectName || '-'}</td>
-                <td>{task.teamName || '-'}</td>
-                <td>{task.assignedToName || '-'}</td>
-                <td>
-                  <span className={`badge badge-${getStatusColor(task.status)}`}>
-                    {task.status}
-                  </span>
-                </td>
-                <td>
-                  <span className={`badge badge-${getPriorityColor(task.priority)}`}>
-                    {task.priority}
-                  </span>
-                </td>
-                <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
-                {isManager && (
-                  <td>
-                    <button onClick={() => handleEdit(task)} className="text-blue-600 hover:text-blue-800 mr-3">
-                      Edit
-                    </button>
-                    <button onClick={() => handleDelete(task.id)} className="text-red-600 hover:text-red-800">
-                      Delete
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {tasks.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No tasks found. {isManager ? 'Click "Add Task" to create one.' : ''}
+      <div className="space-y-8">
+        <div className="card overflow-hidden">
+          <div className="bg-blue-50 px-4 py-3 border-b">
+            <h2 className="text-lg font-semibold text-blue-800">Active Tasks</h2>
+            <p className="text-sm text-blue-600">{activeTasks.length} active task(s)</p>
           </div>
-        )}
+          {activeTasks.length > 0 ? (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Project</th>
+                  <th>Team</th>
+                  <th>Assigned To</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Due Date</th>
+                  {isManager && <th>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {activeTasks.map((task) => (
+                  <tr key={task.id}>
+                    <td className="font-medium">
+                      <button
+                        onClick={() => handleViewTask(task)}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {task.title}
+                      </button>
+                    </td>
+                    <td>{task.projectName || '-'}</td>
+                    <td>{task.teamName || '-'}</td>
+                    <td>{task.assignedToName || '-'}</td>
+                    <td>
+                      <span className={`badge badge-${getStatusColor(task.status)}`}>
+                        {getStatusLabel(task.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${getPriorityColor(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                    {isManager && (
+                      <td>
+                        <button onClick={() => handleEdit(task)} className="text-blue-600 hover:text-blue-800 mr-3">
+                          Edit
+                        </button>
+                        <button onClick={() => handleDelete(task.id)} className="text-red-600 hover:text-red-800">
+                          Delete
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No active tasks found. {isManager ? 'Click "Add Task" to create one.' : ''}
+            </div>
+          )}
+        </div>
+
+        <div className="card overflow-hidden border-2 border-gray-200">
+          <div className="bg-green-50 px-4 py-3 border-b">
+            <h2 className="text-lg font-semibold text-green-800">Completed Tasks History</h2>
+            <p className="text-sm text-green-600">{completedTasks.length} completed task(s)</p>
+          </div>
+          {completedTasks.length > 0 ? (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Project</th>
+                  <th>Team</th>
+                  <th>Assigned To</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Due Date</th>
+                  {isManager && <th>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {completedTasks.map((task) => (
+                  <tr key={task.id} className="bg-gray-50">
+                    <td className="font-medium">
+                      <button
+                        onClick={() => handleViewTask(task)}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {task.title}
+                      </button>
+                    </td>
+                    <td>{task.projectName || '-'}</td>
+                    <td>{task.teamName || '-'}</td>
+                    <td>{task.assignedToName || '-'}</td>
+                    <td>
+                      <span className={`badge badge-${getStatusColor(task.status)}`}>
+                        {getStatusLabel(task.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${getPriorityColor(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                    {isManager && (
+                      <td>
+                        <button onClick={() => handleEdit(task)} className="text-blue-600 hover:text-blue-800 mr-3">
+                          Edit
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No completed tasks yet.
+            </div>
+          )}
+        </div>
       </div>
 
       {showModal && (
@@ -292,12 +495,9 @@ export default function Tasks() {
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 >
-                  <option value="TODO">Todo</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="IN_REVIEW">In Review</option>
-                  <option value="TESTING">Testing</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="BLOCKED">Blocked</option>
+                  {(editingTask ? TASK_STATUSES.EDIT : TASK_STATUSES.CREATE).map(status => (
+                    <option key={status} value={status}>{getStatusLabel(status)}</option>
+                  ))}
                 </select>
                 <select
                   className="input"
@@ -313,20 +513,20 @@ export default function Tasks() {
                 <select
                   className="input"
                   value={formData.projectId}
-                  onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, projectId: e.target.value, teamId: '', assignedToId: '' })}
                 >
                   <option value="">Select Project</option>
-                  {projects.map((p) => (
+                  {getFilteredProjects().map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
                 <select
                   className="input"
                   value={formData.teamId}
-                  onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, teamId: e.target.value, assignedToId: '' })}
                 >
                   <option value="">Select Team</option>
-                  {teams.map((t) => (
+                  {getFilteredTeams().map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -338,8 +538,8 @@ export default function Tasks() {
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
                 >
                   <option value="">Assign To</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                  {getFilteredUsers().map((u) => (
+                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>
                   ))}
                 </select>
                 <input

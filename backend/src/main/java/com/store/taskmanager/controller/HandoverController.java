@@ -22,8 +22,15 @@ public class HandoverController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public ResponseEntity<List<HandoverDTO>> getAllHandovers() {
-        return ResponseEntity.ok(handoverService.getAllHandovers());
+    public ResponseEntity<List<HandoverDTO>> getAllHandovers(@AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+            return ResponseEntity.ok(handoverService.getAllHandovers());
+        } else if (currentUser.getRole().name().equals("MANAGER")) {
+            return ResponseEntity.ok(handoverService.getHandoversByManager(currentUser.getId()));
+        }
+        return ResponseEntity.ok(handoverService.getAllHandovers()); // fallback or handle team lead
     }
 
     @GetMapping("/{id}")

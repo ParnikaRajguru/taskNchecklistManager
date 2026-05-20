@@ -22,4 +22,7 @@ public interface HandoverRepository extends JpaRepository<Handover, Long> {
 
     @Query("SELECT h FROM Handover h WHERE h.resolved = false AND h.createdAt < CURRENT_DATE")
     List<Handover> findMissedHandovers();
+
+    @Query("SELECT h FROM Handover h WHERE h.assignedTeam.manager.id = ?1 OR h.receivingTeam.manager.id = ?1")
+    List<Handover> findByManagerId(Long managerId);
 }

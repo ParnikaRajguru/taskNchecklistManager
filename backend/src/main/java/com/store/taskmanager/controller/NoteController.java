@@ -46,7 +46,8 @@ public class NoteController {
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         String content = request.get("content");
-        return ResponseEntity.ok(noteService.updateNote(noteId, content, currentUser));
+        boolean isAdmin = currentUser.getRole().name().equals("SUPER_ADMIN");
+        return ResponseEntity.ok(noteService.updateNote(noteId, content, currentUser, isAdmin));
     }
 
     @DeleteMapping("/notes/{noteId}")

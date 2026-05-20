@@ -35,6 +35,12 @@ public class HandoverService {
                 .collect(Collectors.toList());
     }
 
+    public List<HandoverDTO> getHandoversByManager(Long managerId) {
+        return handoverRepository.findByManagerId(managerId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     public HandoverDTO getHandoverById(Long id) {
         Handover handover = handoverRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Handover not found with id: " + id));

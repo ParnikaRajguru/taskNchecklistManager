@@ -39,6 +39,13 @@ public class ProjectService {
                 .collect(Collectors.toList());
     }
 
+    public List<ProjectDTO> getProjectsByManager(Long managerId) {
+        return projectRepository.findByTeamsManagerId(managerId).stream()
+                .distinct()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public ProjectDTO createProject(CreateProjectRequest request, User currentUser) {
         validateDates(request.getStartDate(), request.getEndDate());
@@ -49,6 +56,7 @@ public class ProjectService {
         project.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE");
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
+        project.setPublicId(generateNextProjectPublicId());
 
         projectRepository.save(project);
 
@@ -99,6 +107,7 @@ public class ProjectService {
     private ProjectDTO mapToDTO(Project project) {
         ProjectDTO dto = new ProjectDTO();
         dto.setId(project.getId());
+        dto.setPublicId(project.getPublicId());
         dto.setName(project.getName());
         dto.setDescription(project.getDescription());
         dto.setStatus(project.getStatus());
@@ -114,5 +123,16 @@ public class ProjectService {
         }
 
         return dto;
+    }
+
+    private String generateNextProjectPublicId() {
+        long count = projectRepository.count();
+        String publicId;
+        int counter = 1;
+        do {
+            publicId = String.format("PRJ-%03d", count + counter);
+            counter++;
+        } while (projectRepository.findByPublicId(publicId).isPresent());
+        return publicId;
     }
 }

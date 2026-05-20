@@ -26,10 +26,11 @@ public class TaskController {
     public ResponseEntity<List<TaskDTO>> getAllTasks(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                user.getRole().name().equals("MANAGER");
-        if (isManager) {
+        if (user.getRole().name().equals("SUPER_ADMIN")) {
             return ResponseEntity.ok(taskService.getAllTasks());
+        }
+        if (user.getRole().name().equals("MANAGER")) {
+            return ResponseEntity.ok(taskService.getTasksByManager(user.getId()));
         }
         return ResponseEntity.ok(taskService.getAccessibleTasks(user));
     }

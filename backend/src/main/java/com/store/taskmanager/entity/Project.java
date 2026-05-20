@@ -22,6 +22,9 @@ public class Project {
     @Column(nullable = false)
     private String name;
 
+    @Column(unique = true)
+    private String publicId;
+
     private String description;
 
     private String status;
@@ -30,9 +33,13 @@ public class Project {
     private LocalDate endDate;
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private List<Team> teams = new ArrayList<>();
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private List<Task> tasks = new ArrayList<>();
 
     private LocalDateTime createdAt;

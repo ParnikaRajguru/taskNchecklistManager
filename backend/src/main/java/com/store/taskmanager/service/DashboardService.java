@@ -20,6 +20,8 @@ public class DashboardService {
     private final HandoverRepository handoverRepository;
     private final ChecklistItemRepository checklistItemRepository;
     private final ChecklistRepository checklistRepository;
+    private final ProjectRepository projectRepository;
+    private final TeamRepository teamRepository;
 
     public DashboardDTO getDashboardData(User user) {
         DashboardDTO dashboard = new DashboardDTO();
@@ -29,20 +31,19 @@ public class DashboardService {
             shiftId = user.getShift().getId();
         }
 
-        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                          user.getRole().name().equals("MANAGER");
+        String role = user.getRole().name();
+        boolean isManager = role.equals("SUPER_ADMIN") || role.equals("MANAGER");
 
         List<com.store.taskmanager.entity.Task> allTasks;
-        if (isManager) {
+        if (role.equals("SUPER_ADMIN")) {
             allTasks = taskRepository.findAll();
-        } else if (user.getTeam() != null) {
-            List<com.store.taskmanager.entity.Task> teamTasks = taskRepository.findByTeamId(user.getTeam().getId());
-            List<com.store.taskmanager.entity.Task> assignedTasks = taskRepository.findByAssignedToId(user.getId());
-            allTasks = new java.util.ArrayList<>(teamTasks);
-            for (com.store.taskmanager.entity.Task t : assignedTasks) {
-                if (allTasks.stream().noneMatch(ct -> ct.getId().equals(t.getId()))) {
-                    allTasks.add(t);
-                }
+        } else if (role.equals("MANAGER")) {
+            allTasks = taskRepository.findByTeamManagerId(user.getId());
+        } else if (role.equals("TEAM_LEAD")) {
+            if (user.getTeam() != null) {
+                allTasks = taskRepository.findByTeamId(user.getTeam().getId());
+            } else {
+                allTasks = new java.util.ArrayList<>();
             }
         } else {
             allTasks = taskRepository.findByAssignedToId(user.getId());
@@ -77,16 +78,58 @@ public class DashboardService {
                 .filter(t -> t.getStatus() == TaskStatus.BLOCKED)
                 .count());
 
-        dashboard.setDelayedChecklists((long) checklistRepository.findDelayedChecklists(LocalDateTime.now()).size());
+        List<com.store.taskmanager.entity.Checklist> delayedChecklists = checklistRepository.findDelayedChecklists(LocalDateTime.now());
+        if (role.equals("MANAGER")) {
+            delayedChecklists = delayedChecklists.stream()
+                    .filter(c -> c.getTeam() != null && c.getTeam().getManager() != null && c.getTeam().getManager().getId().equals(user.getId()))
+                    .collect(Collectors.toList());
+        } else if (role.equals("TEAM_LEAD") || role.equals("STAFF") || role.equals("DEVELOPER") || role.equals("TESTER")) {
+            if (user.getTeam() != null) {
+                delayedChecklists = delayedChecklists.stream()
+                        .filter(c -> c.getTeam() != null && c.getTeam().getId().equals(user.getTeam().getId()))
+                        .collect(Collectors.toList());
+            } else {
+                delayedChecklists = new java.util.ArrayList<>();
+            }
+        }
+        dashboard.setDelayedChecklists((long) delayedChecklists.size());
 
-        boolean isLeadOrAbove = isManager || user.getRole().name().equals("TEAM_LEAD");
+        boolean isLeadOrAbove = role.equals("SUPER_ADMIN") || role.equals("MANAGER") || role.equals("TEAM_LEAD");
 
         if (isLeadOrAbove) {
-            dashboard.setMissedHandovers((long) handoverRepository.findMissedHandovers().size());
+            List<com.store.taskmanager.entity.Handover> missedHandovers = handoverRepository.findMissedHandovers();
+            if (role.equals("MANAGER")) {
+                missedHandovers = missedHandovers.stream()
+                        .filter(h -> (h.getAssignedTeam() != null && h.getAssignedTeam().getManager() != null && h.getAssignedTeam().getManager().getId().equals(user.getId())) ||
+                                     (h.getReceivingTeam() != null && h.getReceivingTeam().getManager() != null && h.getReceivingTeam().getManager().getId().equals(user.getId())))
+                        .collect(Collectors.toList());
+            } else if (role.equals("TEAM_LEAD")) {
+                if (user.getTeam() != null) {
+                    missedHandovers = missedHandovers.stream()
+                            .filter(h -> (h.getAssignedTeam() != null && h.getAssignedTeam().getId().equals(user.getTeam().getId())) ||
+                                         (h.getReceivingTeam() != null && h.getReceivingTeam().getId().equals(user.getTeam().getId())))
+                            .collect(Collectors.toList());
+                } else {
+                    missedHandovers = new java.util.ArrayList<>();
+                }
+            }
+            dashboard.setMissedHandovers((long) missedHandovers.size());
             dashboard.setPendingApprovals(dashboard.getPendingTasks());
         } else {
             dashboard.setMissedHandovers(0L);
             dashboard.setPendingApprovals(0L);
+        }
+
+        // Calculate total projects and teams
+        if (role.equals("SUPER_ADMIN")) {
+            dashboard.setTotalProjects(projectRepository.count());
+            dashboard.setTotalTeams(teamRepository.count());
+        } else if (role.equals("MANAGER")) {
+            dashboard.setTotalProjects((long) projectRepository.findByTeamsManagerId(user.getId()).size());
+            dashboard.setTotalTeams((long) teamRepository.findByManagerId(user.getId()).size());
+        } else {
+            dashboard.setTotalProjects(user.getTeam() != null && user.getTeam().getProject() != null ? 1L : 0L);
+            dashboard.setTotalTeams(user.getTeam() != null ? 1L : 0L);
         }
 
         List<com.store.taskmanager.entity.Task> recentTasks = allTasks.stream()
@@ -98,19 +141,47 @@ public class DashboardService {
                 .map(this::mapTaskToDTO)
                 .collect(Collectors.toList()));
 
-        if (shiftId != null) {
-            List<com.store.taskmanager.entity.Handover> pendingHandovers =
-                    handoverRepository.findUnresolvedByShiftId(shiftId);
-            dashboard.setPendingHandovers(pendingHandovers.stream()
-                    .map(this::mapHandoverToDTO)
-                    .collect(Collectors.toList()));
+        if (shiftId != null || role.equals("MANAGER") || role.equals("TEAM_LEAD")) {
+            List<com.store.taskmanager.entity.ChecklistItem> pendingItems;
+            if (role.equals("MANAGER")) {
+                pendingItems = checklistItemRepository.findAll().stream()
+                        .filter(i -> !i.isCompleted() && i.getChecklist() != null && i.getChecklist().getTeam() != null && i.getChecklist().getTeam().getManager() != null && i.getChecklist().getTeam().getManager().getId().equals(user.getId()))
+                        .collect(Collectors.toList());
+            } else if (role.equals("TEAM_LEAD") && user.getTeam() != null) {
+                pendingItems = checklistItemRepository.findAll().stream()
+                        .filter(i -> !i.isCompleted() && i.getChecklist() != null && i.getChecklist().getTeam() != null && i.getChecklist().getTeam().getId().equals(user.getTeam().getId()))
+                        .collect(Collectors.toList());
+            } else if (shiftId != null) {
+                pendingItems = checklistItemRepository.findPendingItemsByShiftId(shiftId);
+            } else {
+                pendingItems = new java.util.ArrayList<>();
+            }
 
-            List<com.store.taskmanager.entity.ChecklistItem> pendingItems =
-                    checklistItemRepository.findPendingItemsByShiftId(shiftId);
             dashboard.setPendingChecklistItems(pendingItems.stream()
                     .map(this::mapChecklistItemToDTO)
                     .collect(Collectors.toList()));
             dashboard.setPendingChecklistItemsCount((long) pendingItems.size());
+            
+            List<com.store.taskmanager.entity.Handover> pendingHandovers;
+            if (role.equals("MANAGER")) {
+                pendingHandovers = handoverRepository.findMissedHandovers().stream()
+                        .filter(h -> (h.getAssignedTeam() != null && h.getAssignedTeam().getManager() != null && h.getAssignedTeam().getManager().getId().equals(user.getId())) ||
+                                     (h.getReceivingTeam() != null && h.getReceivingTeam().getManager() != null && h.getReceivingTeam().getManager().getId().equals(user.getId())))
+                        .collect(Collectors.toList());
+            } else if (role.equals("TEAM_LEAD") && user.getTeam() != null) {
+                pendingHandovers = handoverRepository.findMissedHandovers().stream()
+                        .filter(h -> (h.getAssignedTeam() != null && h.getAssignedTeam().getId().equals(user.getTeam().getId())) ||
+                                     (h.getReceivingTeam() != null && h.getReceivingTeam().getId().equals(user.getTeam().getId())))
+                        .collect(Collectors.toList());
+            } else if (shiftId != null) {
+                pendingHandovers = handoverRepository.findUnresolvedByShiftId(shiftId);
+            } else {
+                pendingHandovers = new java.util.ArrayList<>();
+            }
+            
+            dashboard.setPendingHandovers(pendingHandovers.stream()
+                    .map(this::mapHandoverToDTO)
+                    .collect(Collectors.toList()));
         } else {
             dashboard.setPendingChecklistItemsCount(0L);
         }

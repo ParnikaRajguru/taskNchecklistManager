@@ -11,6 +11,8 @@ public class DashboardDTO {
     private Long overdueTasks;
     private Long blockedTasks;
     private Long completedToday;
+    private Long totalProjects;
+    private Long totalTeams;
     private Long pendingApprovals;
     private Long delayedChecklists;
     private Long missedHandovers;

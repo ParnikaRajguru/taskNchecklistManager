@@ -26,10 +26,11 @@ public class ProjectController {
     public ResponseEntity<List<ProjectDTO>> getAllProjects(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        boolean isManager = user.getRole().name().equals("SUPER_ADMIN") ||
-                user.getRole().name().equals("MANAGER");
-        if (isManager) {
+        if (user.getRole().name().equals("SUPER_ADMIN")) {
             return ResponseEntity.ok(projectService.getAllProjects());
+        }
+        if (user.getRole().name().equals("MANAGER")) {
+            return ResponseEntity.ok(projectService.getProjectsByManager(user.getId()));
         }
         if (user.getTeam() != null && user.getTeam().getProject() != null) {
             return ResponseEntity.ok(java.util.List.of(projectService.getProjectById(user.getTeam().getProject().getId())));

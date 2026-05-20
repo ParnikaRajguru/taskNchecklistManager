@@ -47,6 +47,13 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    public List<TaskDTO> getTasksByManager(Long managerId) {
+        return taskRepository.findByTeamManagerId(managerId).stream()
+                .distinct()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<TaskDTO> getTasksByUser(Long userId) {
         return taskRepository.findByAssignedToId(userId).stream()
                 .map(this::mapToDTO)
@@ -92,22 +99,26 @@ public class TaskService {
         task.setDueDate(request.getDueDate());
         task.setCreatedBy(currentUser);
 
-        if (request.getProjectId() != null) {
-            Project project = projectRepository.findById(request.getProjectId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-            task.setProject(project);
-        }
-
+        Team team = null;
         if (request.getTeamId() != null) {
-            Team team = teamRepository.findById(request.getTeamId())
+            team = teamRepository.findById(request.getTeamId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
             task.setTeam(team);
         }
 
+        User assignedTo = null;
         if (request.getAssignedToId() != null) {
-            User assignedTo = userRepository.findById(request.getAssignedToId())
+            assignedTo = userRepository.findById(request.getAssignedToId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             task.setAssignedTo(assignedTo);
+        }
+
+        AssignmentValidator.validate(currentUser, assignedTo, team);
+
+        if (request.getProjectId() != null) {
+            Project project = projectRepository.findById(request.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+            task.setProject(project);
         }
 
         taskRepository.save(task);
@@ -130,22 +141,26 @@ public class TaskService {
         if (request.getPriority() != null) task.setPriority(request.getPriority());
         if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
 
-        if (request.getProjectId() != null) {
-            Project project = projectRepository.findById(request.getProjectId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-            task.setProject(project);
-        }
-
+        Team team = task.getTeam();
         if (request.getTeamId() != null) {
-            Team team = teamRepository.findById(request.getTeamId())
+            team = teamRepository.findById(request.getTeamId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
             task.setTeam(team);
         }
 
+        User assignedTo = task.getAssignedTo();
         if (request.getAssignedToId() != null) {
-            User assignedTo = userRepository.findById(request.getAssignedToId())
+            assignedTo = userRepository.findById(request.getAssignedToId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             task.setAssignedTo(assignedTo);
+        }
+
+        AssignmentValidator.validate(currentUser, assignedTo, team);
+
+        if (request.getProjectId() != null) {
+            Project project = projectRepository.findById(request.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+            task.setProject(project);
         }
 
         taskRepository.save(task);

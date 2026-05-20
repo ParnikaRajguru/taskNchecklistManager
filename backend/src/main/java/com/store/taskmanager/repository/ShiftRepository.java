@@ -10,4 +10,5 @@ import java.util.List;
 public interface ShiftRepository extends JpaRepository<Shift, Long> {
     List<Shift> findByShiftType(ShiftType shiftType);
     List<Shift> findByActiveTrue();
+    List<Shift> findByTeamId(Long teamId);
 }

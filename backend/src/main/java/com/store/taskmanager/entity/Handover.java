@@ -36,18 +36,26 @@ public class Handover {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "from_shift_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Shift fromShift;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "to_shift_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Shift toShift;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_team_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Team assignedTeam;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiving_team_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Team receivingTeam;
 
     @Enumerated(EnumType.STRING)
@@ -55,10 +63,14 @@ public class Handover {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private User createdBy;
 
     private boolean resolved = false;
@@ -68,6 +80,8 @@ public class Handover {
     private LocalDateTime acknowledgedAt;
 
     @OneToMany(mappedBy = "handover", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private List<HandoverNote> notes = new ArrayList<>();
 
     private LocalDateTime createdAt;

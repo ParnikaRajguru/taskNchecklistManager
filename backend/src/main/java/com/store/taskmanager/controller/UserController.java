@@ -23,8 +23,17 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD')")
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDTO>> getAllUsers(@AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+            return ResponseEntity.ok(userService.getAllUsers());
+        } else if (currentUser.getRole().name().equals("MANAGER")) {
+            return ResponseEntity.ok(userService.getUsersByManager(currentUser.getId()));
+        } else if (currentUser.getRole().name().equals("TEAM_LEAD")) {
+            return ResponseEntity.ok(userService.getUsersByTeamLead(currentUser.getId()));
+        }
+        return ResponseEntity.ok(List.of());
     }
 
     @GetMapping("/profile")

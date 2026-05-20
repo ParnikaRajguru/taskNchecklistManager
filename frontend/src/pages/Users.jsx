@@ -14,6 +14,19 @@ export default function Users() {
   const { user: currentUser } = useAuth()
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '', shiftId: '' })
   const [createUserData, setCreateUserData] = useState({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', role: 'STAFF', teamId: '' })
+  const [editingUser, setEditingUser] = useState(null)
+
+  const teamsWithoutManager = teams.filter(t => !t.managerId || (editingUser && editingUser.teamId === t.id))
+  const teamsWithoutTeamLead = teams.filter(t => !t.teamLeadId || (editingUser && editingUser.teamId === t.id))
+
+  const getAvailableTeams = (role) => {
+    if (role === 'MANAGER') return teamsWithoutManager
+    if (role === 'TEAM_LEAD') return teamsWithoutTeamLead
+    return teams
+  }
+
+  const createUserTeams = getAvailableTeams(createUserData.role)
+  const editUserTeams = getAvailableTeams(formData.role)
 
   useEffect(() => { loadData() }, [])
 
@@ -60,6 +73,7 @@ export default function Users() {
   }
 
   const handleEdit = (user) => {
+    setEditingUser(user)
     setFormData({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -83,6 +97,7 @@ export default function Users() {
       }
       await userService.update(showModal.id, payload)
       setShowModal(false)
+      setEditingUser(null)
       loadData()
     } catch (err) {
       setError(getErrorMessage(err))
@@ -129,6 +144,7 @@ export default function Users() {
           <table className="table">
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Name</th>
                 <th>Username</th>
                 <th>Email</th>
@@ -141,6 +157,7 @@ export default function Users() {
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
+                  <td className="text-xs font-mono text-gray-500">{user.publicId || '-'}</td>
                   <td className="font-medium">{user.firstName} {user.lastName}</td>
                   <td>{user.username}</td>
                   <td>{user.email}</td>
@@ -184,7 +201,7 @@ export default function Users() {
               </select>
               <select className="input" value={createUserData.teamId} onChange={(e) => setCreateUserData({ ...createUserData, teamId: e.target.value })}>
                 <option value="">Select Team</option>
-                {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {createUserTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
               <div className="flex gap-2">
                 <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Creating...' : 'Create'}</button>
@@ -216,7 +233,7 @@ export default function Users() {
               <div className="grid grid-cols-2 gap-4">
                 <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
                   <option value="">Select Team</option>
-                  {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  {editUserTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
                 <select className="input" value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}>
                   <option value="">Select Shift</option>
@@ -225,7 +242,7 @@ export default function Users() {
               </div>
               <div className="flex gap-2">
                 <button onClick={handleUpdate} className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Updating...' : 'Update'}</button>
-                <button onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
+                <button onClick={() => { setShowModal(false); setEditingUser(null); setError('') }} className="btn btn-secondary">Cancel</button>
               </div>
             </div>
           </div>
