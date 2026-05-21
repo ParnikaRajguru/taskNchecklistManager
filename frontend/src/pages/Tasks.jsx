@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { taskService, projectService, teamService, userService, noteService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -58,6 +59,7 @@ export default function Tasks() {
   const [newNote, setNewNote] = useState('')
   const [loadingNotes, setLoadingNotes] = useState(false)
   const [addingNote, setAddingNote] = useState(false)
+  const navigate = useNavigate()
   const { user } = useAuth()
 
   const [formData, setFormData] = useState({
@@ -152,17 +154,11 @@ export default function Tasks() {
     }
   }
 
-  const handleViewTask = async (task) => {
-    setSelectedTask(task)
-    setShowDetailsModal(true)
-    setLoadingNotes(true)
-    try {
-      const response = await noteService.getByTask(task.id)
-      setNotes(response.data)
-    } catch (err) {
-      setNotes([])
-    } finally {
-      setLoadingNotes(false)
+  const handleViewTask = (task) => {
+    if (task.teamId && task.projectId) {
+      navigate(`/projects/${task.projectId}/teams/${task.teamId}/tasks/${task.id}`)
+    } else {
+      navigate(`/tasks/${task.id}`)
     }
   }
 
@@ -568,104 +564,27 @@ export default function Tasks() {
 
       {showDetailsModal && selectedTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-xl font-semibold text-gray-800">{selectedTask.title}</h3>
-                <p className="text-sm text-gray-500">
-                  {selectedTask.projectName && `Project: ${selectedTask.projectName}`}
-                  {selectedTask.teamName && ` | Team: ${selectedTask.teamName}`}
-                </p>
+                <p className="text-sm text-gray-500">{selectedTask.projectName && `${selectedTask.projectName}`}</p>
               </div>
-              <button
-                onClick={() => setShowDetailsModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                &times;
-              </button>
+              <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
-
-            <div className="mb-4">
-              <div className="flex gap-2 mb-3">
-                <span className={`badge badge-${getStatusColor(selectedTask.status)}`}>
-                  {selectedTask.status}
-                </span>
-                <span className={`badge badge-${getPriorityColor(selectedTask.priority)}`}>
-                  {selectedTask.priority}
-                </span>
-              </div>
-              {selectedTask.description && (
-                <p className="text-gray-600 mb-2">{selectedTask.description}</p>
-              )}
-              <div className="text-sm text-gray-500">
-                <p>Assigned to: {selectedTask.assignedToName || 'Unassigned'}</p>
-                <p>Due Date: {selectedTask.dueDate ? new Date(selectedTask.dueDate).toLocaleDateString() : 'Not set'}</p>
-                <p>Created: {selectedTask.createdByName || 'Unknown'}</p>
-              </div>
+            <div className="flex gap-2 mb-3">
+              <span className={`badge badge-${getStatusColor(selectedTask.status)}`}>{getStatusLabel(selectedTask.status)}</span>
+              <span className={`badge badge-${getPriorityColor(selectedTask.priority)}`}>{selectedTask.priority}</span>
             </div>
-
-            <div className="border-t pt-4">
-              <h4 className="text-lg font-semibold mb-3">Notes</h4>
-
-              <form onSubmit={handleAddNote} className="mb-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add a note..."
-                    className="input flex-1"
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={addingNote || !newNote.trim()}
-                  >
-                    {addingNote ? 'Adding...' : 'Add'}
-                  </button>
-                </div>
-              </form>
-
-              {loadingNotes ? (
-                <div className="text-center py-4 text-gray-500">Loading notes...</div>
-              ) : notes.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">No notes yet</div>
-              ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {notes.map((note) => (
-                    <div key={note.id} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-sm">
-                            {note.createdByName}
-                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                              note.createdByRole === 'SUPER_ADMIN' ? 'bg-red-100 text-red-800' :
-                              note.createdByRole === 'MANAGER' ? 'bg-blue-100 text-blue-800' :
-                              note.createdByRole === 'TEAM_LEAD' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {note.createdByRole}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {note.createdAt ? new Date(note.createdAt).toLocaleString() : ''}
-                          </p>
-                        </div>
-                        {user?.role === 'SUPER_ADMIN' && (
-                          <button
-                            onClick={() => handleDeleteNote(note.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                      <p className="mt-2 text-gray-700">{note.content}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {selectedTask.description && <p className="text-gray-600 mb-2">{selectedTask.description}</p>}
+            <div className="text-sm text-gray-500 mb-4">
+              <p>Assigned to: {selectedTask.assignedToName || 'Unassigned'}</p>
+              <p>Team: {selectedTask.teamName || '-'}</p>
             </div>
+            <button onClick={() => {
+              setShowDetailsModal(false)
+              handleViewTask(selectedTask)
+            }} className="btn btn-primary w-full">View Full Details</button>
           </div>
         </div>
       )}

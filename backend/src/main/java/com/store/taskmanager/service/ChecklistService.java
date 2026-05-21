@@ -23,6 +23,7 @@ public class ChecklistService {
     private final ChecklistItemRepository checklistItemRepository;
     private final ShiftRepository shiftRepository;
     private final TeamRepository teamRepository;
+    private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
 
@@ -116,6 +117,36 @@ public class ChecklistService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<ChecklistDTO> getChecklistsByTask(Long taskId, User currentUser) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+
+        String role = currentUser.getRole().name();
+
+        if (role.equals("SUPER_ADMIN")) {
+            return checklistRepository.findByTaskId(taskId).stream()
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
+        if (role.equals("MANAGER")) {
+            return checklistRepository.findByTaskId(taskId).stream()
+                    .filter(c -> c.getTeam() != null && c.getTeam().getManager() != null
+                            && c.getTeam().getManager().getId().equals(currentUser.getId()))
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+        }
+
+        if (currentUser.getTeam() == null || task.getTeam() == null
+                || !currentUser.getTeam().getId().equals(task.getTeam().getId())) {
+            return new ArrayList<>();
+        }
+
+        return checklistRepository.findByTaskId(taskId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public ChecklistDTO createChecklist(CreateChecklistRequest request, User currentUser) {
         String role = currentUser.getRole().name();
@@ -140,6 +171,15 @@ public class ChecklistService {
             }
         }
 
+        // If taskId is provided but team is not resolved yet, infer team from task
+        if (team == null && request.getTaskId() != null) {
+            Task taskForTeam = taskRepository.findById(request.getTaskId())
+                    .orElse(null);
+            if (taskForTeam != null && taskForTeam.getTeam() != null) {
+                team = taskForTeam.getTeam();
+            }
+        }
+
         // Self assignment check and hierarchy validation will be done when processing items below
 
         Checklist checklist = new Checklist();
@@ -155,6 +195,12 @@ public class ChecklistService {
 
         if (team != null) {
             checklist.setTeam(team);
+        }
+
+        if (request.getTaskId() != null) {
+            Task task = taskRepository.findById(request.getTaskId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+            checklist.setTask(task);
         }
 
         if (request.getItems() != null && !request.getItems().isEmpty()) {
@@ -377,6 +423,11 @@ public class ChecklistService {
         if (checklist.getTeam() != null) {
             dto.setTeamId(checklist.getTeam().getId());
             dto.setTeamName(checklist.getTeam().getName());
+        }
+
+        if (checklist.getTask() != null) {
+            dto.setTaskId(checklist.getTask().getId());
+            dto.setTaskTitle(checklist.getTask().getTitle());
         }
 
         if (checklist.getCreatedBy() != null) {

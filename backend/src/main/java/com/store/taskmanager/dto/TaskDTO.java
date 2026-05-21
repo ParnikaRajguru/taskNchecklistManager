@@ -24,6 +24,8 @@ public class TaskDTO {
     private String createdByName;
     private LocalDate dueDate;
     private List<NoteDTO> notes;
+    private Integer checklistCount;
+    private Integer checklistProgress;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

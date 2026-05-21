@@ -50,6 +50,13 @@ public class ChecklistController {
         return ResponseEntity.ok(checklistService.getChecklistsByTeam(teamId, currentUser));
     }
 
+    @GetMapping("/by-task/{taskId}")
+    public ResponseEntity<List<ChecklistDTO>> getChecklistsByTask(@PathVariable Long taskId, @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(checklistService.getChecklistsByTask(taskId, currentUser));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER', 'TEAM_LEAD', 'STAFF', 'DEVELOPER', 'TESTER')")
     public ResponseEntity<ChecklistDTO> createChecklist(

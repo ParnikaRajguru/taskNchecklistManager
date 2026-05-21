@@ -60,6 +60,14 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    public List<TaskDTO> getTasksByTeamAndProject(Long teamId, Long projectId) {
+        return taskRepository.findAll().stream()
+                .filter(t -> t.getTeam() != null && t.getTeam().getId().equals(teamId))
+                .filter(t -> t.getProject() != null && t.getProject().getId().equals(projectId))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<TaskDTO> getPendingTasksByUser(Long userId) {
         return taskRepository.findPendingTasksByUserId(userId).stream()
                 .map(this::mapToDTO)
@@ -213,6 +221,25 @@ public class TaskService {
         if (task.getCreatedBy() != null) {
             dto.setCreatedById(task.getCreatedBy().getId());
             dto.setCreatedByName(task.getCreatedBy().getFullName());
+        }
+
+        if (task.getChecklists() != null) {
+            dto.setChecklistCount(task.getChecklists().size());
+            if (!task.getChecklists().isEmpty()) {
+                long totalItems = task.getChecklists().stream()
+                        .mapToLong(c -> c.getItems() != null ? c.getItems().size() : 0)
+                        .sum();
+                long completedItems = task.getChecklists().stream()
+                        .flatMap(c -> c.getItems() != null ? c.getItems().stream() : java.util.stream.Stream.empty())
+                        .filter(ChecklistItem::isCompleted)
+                        .count();
+                dto.setChecklistProgress(totalItems > 0 ? (int) (completedItems * 100 / totalItems) : 0);
+            } else {
+                dto.setChecklistProgress(0);
+            }
+        } else {
+            dto.setChecklistCount(0);
+            dto.setChecklistProgress(0);
         }
 
         return dto;

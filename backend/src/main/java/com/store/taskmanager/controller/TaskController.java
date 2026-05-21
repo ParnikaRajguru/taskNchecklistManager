@@ -55,6 +55,13 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getTasksByUser(userId));
     }
 
+    @GetMapping("/by-team-and-project")
+    public ResponseEntity<List<TaskDTO>> getTasksByTeamAndProject(
+            @RequestParam Long teamId,
+            @RequestParam Long projectId) {
+        return ResponseEntity.ok(taskService.getTasksByTeamAndProject(teamId, projectId));
+    }
+
     @GetMapping("/my-tasks")
     public ResponseEntity<List<TaskDTO>> getMyTasks(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())

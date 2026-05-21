@@ -12,5 +12,6 @@ public class CreateChecklistRequest {
     private String description;
     private Long shiftId;
     private Long teamId;
+    private Long taskId;
     private List<CreateChecklistItemRequest> items;
 }

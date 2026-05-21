@@ -36,6 +36,12 @@ public class Checklist {
     private Team team;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Task task;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     @lombok.ToString.Exclude
     @lombok.EqualsAndHashCode.Exclude

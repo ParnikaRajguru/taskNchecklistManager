@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { projectService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -18,6 +19,7 @@ function getProjectStatusLabel(status) {
 }
 
 export default function Projects() {
+  const navigate = useNavigate()
   const [projects, setProjects] = useState([])
   const [activeProjects, setActiveProjects] = useState([])
   const [completedProjects, setCompletedProjects] = useState([])
@@ -143,7 +145,7 @@ export default function Projects() {
             {activeProjects.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                 {activeProjects.map((project) => (
-                  <div key={project.id} className="card">
+                  <div key={project.id} className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/projects/${project.id}`)}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="font-semibold text-lg">{project.name}</h3>
@@ -169,7 +171,7 @@ export default function Projects() {
                       {project.endDate && <p>Due: {project.endDate}</p>}
                     </div>
                     {isManager && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => handleEdit(project)} className="btn btn-secondary text-sm">Edit</button>
                         <button onClick={() => handleDelete(project.id)} className="btn btn-danger text-sm">Delete</button>
                       </div>
@@ -192,7 +194,7 @@ export default function Projects() {
             {completedProjects.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                 {completedProjects.map((project) => (
-                  <div key={project.id} className="card bg-gray-50">
+                  <div key={project.id} className="card bg-gray-50 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/projects/${project.id}`)}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="font-semibold text-lg">{project.name}</h3>
@@ -218,7 +220,7 @@ export default function Projects() {
                       {project.endDate && <p>Due: {project.endDate}</p>}
                     </div>
                     {isManager && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => handleEdit(project)} className="btn btn-secondary text-sm">Edit</button>
                       </div>
                     )}

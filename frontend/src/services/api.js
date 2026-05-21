@@ -83,7 +83,8 @@ export const taskService = {
   getOverdue: () => api.get('/tasks/overdue'),
   create: (data) => api.post('/tasks', data),
   update: (id, data) => api.put(`/tasks/${id}`, data),
-  delete: (id) => api.delete(`/tasks/${id}`)
+  delete: (id) => api.delete(`/tasks/${id}`),
+  getByTeamAndProject: (teamId, projectId) => api.get(`/tasks/by-team-and-project?teamId=${teamId}&projectId=${projectId}`)
 }
 
 export const shiftService = {
@@ -100,6 +101,7 @@ export const checklistService = {
   getById: (id) => api.get(`/checklists/${id}`),
   getByShift: (shiftId) => api.get(`/checklists/by-shift/${shiftId}`),
   getByTeam: (teamId) => api.get(`/checklists/by-team/${teamId}`),
+  getByTask: (taskId) => api.get(`/checklists/by-task/${taskId}`),
   create: (data) => api.post('/checklists', data),
   update: (id, data) => api.put(`/checklists/${id}`, data),
   completeItem: (itemId) => api.put(`/checklists/items/${itemId}/complete`),

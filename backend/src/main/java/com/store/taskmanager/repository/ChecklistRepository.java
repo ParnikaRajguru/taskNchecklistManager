@@ -11,6 +11,7 @@ import java.util.List;
 public interface ChecklistRepository extends JpaRepository<Checklist, Long> {
     List<Checklist> findByShiftId(Long shiftId);
     List<Checklist> findByTeamId(Long teamId);
+    List<Checklist> findByTaskId(Long taskId);
     List<Checklist> findByCreatedById(Long userId);
     List<Checklist> findByTeamManagerId(Long managerId);
 

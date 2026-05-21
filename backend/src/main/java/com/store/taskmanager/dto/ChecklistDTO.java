@@ -13,6 +13,8 @@ public class ChecklistDTO {
     private String shiftName;
     private Long teamId;
     private String teamName;
+    private Long taskId;
+    private String taskTitle;
     private Long createdById;
     private String createdByName;
     private List<ChecklistItemDTO> items;
