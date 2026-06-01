@@ -2,93 +2,220 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6;
+  @apply bg-slate-50 text-slate-900;
 }
 
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+/* ===== Sidebar ===== */
 .sidebar-link {
-  @apply flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors;
+  @apply flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-lg transition-all duration-200;
 }
-
 .sidebar-link.active {
-  @apply bg-blue-600 text-white;
+  @apply bg-primary-600/20 text-primary-300 shadow-sm;
+}
+.sidebar-link.active svg {
+  @apply text-primary-400;
 }
 
+/* ===== Buttons ===== */
 .btn {
-  @apply px-4 py-2 rounded-lg font-medium transition-colors;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none;
 }
-
 .btn-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700;
+  @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm hover:shadow;
 }
-
 .btn-secondary {
-  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+  @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 focus:ring-primary-500 shadow-sm;
 }
-
 .btn-danger {
-  @apply bg-red-600 text-white hover:bg-red-700;
+  @apply bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500 shadow-sm hover:shadow;
+}
+.btn-ghost {
+  @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-400;
+}
+.btn-success {
+  @apply bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm hover:shadow;
+}
+.btn-warning {
+  @apply bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-400 shadow-sm hover:shadow;
 }
 
+/* ===== Form Inputs ===== */
 .input {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+  @apply block w-full px-3.5 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-slate-400;
+}
+.input:focus {
+  @apply outline-none border-primary-400 ring-2 ring-primary-500/20;
+}
+.input:disabled {
+  @apply bg-slate-50 text-slate-500 cursor-not-allowed;
+}
+.input-error {
+  @apply border-rose-300 focus:border-rose-400 ring-rose-500/20;
+}
+select.input {
+  @apply appearance-none bg-white bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M6%208L10%2012L14%208%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_8px_center] bg-no-repeat pr-10 cursor-pointer;
+}
+textarea.input {
+  @apply min-h-[80px] resize-y;
 }
 
+/* ===== Cards ===== */
 .card {
-  @apply bg-white rounded-lg shadow-md p-6;
+  @apply bg-white rounded-xl border border-slate-200 shadow-soft transition-all duration-200;
+}
+.card-hover {
+  @apply hover:shadow-soft-md hover:border-slate-300 cursor-pointer;
 }
 
+/* ===== Tables ===== */
 .table {
   @apply w-full text-left;
 }
-
 .table th {
-  @apply px-4 py-3 bg-gray-50 text-gray-600 font-semibold text-sm;
+  @apply px-4 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/80 border-b border-slate-200;
 }
-
 .table td {
-  @apply px-4 py-3 border-t border-gray-100;
+  @apply px-4 py-3.5 text-sm text-slate-700 border-b border-slate-100;
+}
+.table tbody tr {
+  @apply transition-colors duration-150;
+}
+.table tbody tr:hover {
+  @apply bg-primary-50/40;
+}
+.table tbody tr:last-child td {
+  @apply border-b-0;
 }
 
+/* ===== Badges ===== */
 .badge {
-  @apply px-2 py-1 rounded-full text-xs font-medium;
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap;
 }
-
 .badge-blue {
-  @apply bg-blue-100 text-blue-800;
+  @apply bg-primary-100 text-primary-800;
 }
-
 .badge-green {
-  @apply bg-green-100 text-green-800;
+  @apply bg-emerald-100 text-emerald-800;
 }
-
 .badge-yellow {
-  @apply bg-yellow-100 text-yellow-800;
+  @apply bg-amber-100 text-amber-800;
 }
-
 .badge-red {
-  @apply bg-red-100 text-red-800;
+  @apply bg-rose-100 text-rose-800;
 }
-
 .badge-gray {
-  @apply bg-gray-100 text-gray-800;
+  @apply bg-slate-100 text-slate-700;
 }
-
 .badge-purple {
-  @apply bg-purple-100 text-purple-800;
+  @apply bg-violet-100 text-violet-800;
 }
-
 .badge-orange {
   @apply bg-orange-100 text-orange-800;
+}
+
+/* ===== Modal Overlay ===== */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in;
+}
+.modal-content {
+  @apply bg-white rounded-2xl border border-slate-200 shadow-soft-xl w-full animate-scale-in;
+}
+.modal-header {
+  @apply px-6 py-5 border-b border-slate-100;
+}
+.modal-body {
+  @apply p-6;
+}
+.modal-footer {
+  @apply px-6 py-4 border-t border-slate-100 flex justify-end gap-3;
+}
+
+/* ===== Loading Skeleton ===== */
+.skeleton {
+  @apply bg-slate-200 rounded animate-pulse;
+}
+
+/* ===== Section Headers ===== */
+.section-header {
+  @apply bg-gradient-to-r from-primary-50 to-slate-50 border-b border-slate-200;
+}
+.section-title {
+  @apply text-base font-semibold text-primary-800;
+}
+.section-subtitle {
+  @apply text-xs text-primary-600;
+}
+
+/* ===== Empty States ===== */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-12 text-center;
+}
+.empty-state-icon {
+  @apply w-16 h-16 mb-4 text-slate-300;
+}
+.empty-state-text {
+  @apply text-sm text-slate-500 max-w-sm;
+}
+.empty-state-action {
+  @apply mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium;
+}
+
+/* ===== Progress Bar ===== */
+.progress-bar {
+  @apply bg-slate-200 rounded-full overflow-hidden;
+}
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-500 ease-out;
+}
+
+/* ===== Stat Card ===== */
+.stat-card {
+  @apply bg-white rounded-xl border border-slate-200 shadow-soft p-5 transition-all duration-200 hover:shadow-soft-md;
+}
+.stat-card-icon {
+  @apply w-10 h-10 rounded-lg flex items-center justify-center;
+}
+.stat-card-value {
+  @apply text-2xl font-bold text-slate-900 mt-2;
+}
+.stat-card-label {
+  @apply text-xs font-medium text-slate-500 uppercase tracking-wider mt-1;
+}
+
+/* ===== Checklist Item ===== */
+.checklist-item {
+  @apply flex items-center gap-3 p-3 rounded-lg transition-all duration-150;
+}
+.checklist-item:hover {
+  @apply bg-slate-50;
+}
+.checklist-item.completed {
+  @apply bg-emerald-50/50;
+}
+
+/* ===== KPI Trend ===== */
+.trend-up {
+  @apply text-emerald-600;
+}
+.trend-down {
+  @apply text-rose-600;
 }

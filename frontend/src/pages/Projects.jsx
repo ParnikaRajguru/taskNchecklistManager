@@ -18,6 +18,11 @@ function getProjectStatusLabel(status) {
   return labels[status] || status
 }
 
+function getStatusBadgeColor(status) {
+  const colors = { ACTIVE: 'green', ON_HOLD: 'yellow', PLANNING: 'blue', COMPLETED: 'gray' }
+  return colors[status] || 'gray'
+}
+
 export default function Projects() {
   const navigate = useNavigate()
   const [projects, setProjects] = useState([])
@@ -118,150 +123,177 @@ export default function Projects() {
 
   const isManager = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role)
 
-  if (loading) return <div className="text-center py-8">Loading...</div>
+  if (loading) return <div className="text-center py-8"><div className="skeleton h-8 w-48 mx-auto mb-4" /><div className="skeleton h-64 w-full rounded-xl" /></div>
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Projects</h1>
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Projects</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage your store projects</p>
+        </div>
         {isManager && (
           <button onClick={() => { resetForm(); setEditingProject(null); setShowModal(true) }} className="btn btn-primary">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Add Project
           </button>
         )}
       </div>
 
       {projects.length === 0 ? (
-        <div className="card text-center py-8">
-          <p className="text-gray-500">No projects assigned to you.</p>
+        <div className="empty-state card py-12">
+          <svg className="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+          <p className="empty-state-text">No projects assigned to you.</p>
+          {isManager && <p className="empty-state-action">Click "Add Project" to create one.</p>}
         </div>
       ) : (
         <div className="space-y-8">
-          <div className="card">
-            <div className="bg-blue-50 px-4 py-3 border-b">
-              <h2 className="text-lg font-semibold text-blue-800">Active Projects</h2>
-              <p className="text-sm text-blue-600">{activeProjects.length} active project(s)</p>
+          <div className="card overflow-hidden">
+            <div className="section-header px-5 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="section-title">Active Projects</h2>
+                  <p className="section-subtitle">{activeProjects.length} active project(s)</p>
+                </div>
+                <svg className="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+              </div>
             </div>
             {activeProjects.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
                 {activeProjects.map((project) => (
-                  <div key={project.id} className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/projects/${project.id}`)}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg">{project.name}</h3>
-                        <span className="text-xs font-mono text-gray-400">{project.publicId}</span>
+                  <div key={project.id} className="card card-hover p-5" onClick={() => navigate(`/projects/${project.id}`)}>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-slate-900 truncate">{project.name}</h3>
+                        <span className="text-xs font-mono text-slate-400">{project.publicId}</span>
                       </div>
-                      <span className={`badge badge-${project.status === 'ACTIVE' ? 'green' : 'gray'}`}>
+                      <span className={`badge badge-${getStatusBadgeColor(project.status)} shrink-0`}>
                         {getProjectStatusLabel(project.status)}
                       </span>
                     </div>
-                    <p className="text-gray-500 text-sm mb-4">{project.description || 'No description'}</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-                      <div className="bg-blue-50 p-2 rounded text-center">
-                        <p className="text-lg font-bold text-blue-600">{project.teamCount || 0}</p>
-                        <p className="text-xs text-gray-500">Teams</p>
+                    <p className="text-sm text-slate-500 mb-4 line-clamp-2">{project.description || 'No description'}</p>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="bg-primary-50/50 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-primary-600">{project.teamCount || 0}</p>
+                        <p className="text-xs text-slate-500">Teams</p>
                       </div>
-                      <div className="bg-green-50 p-2 rounded text-center">
-                        <p className="text-lg font-bold text-green-600">{project.taskCount || 0}</p>
-                        <p className="text-xs text-gray-500">Tasks</p>
+                      <div className="bg-emerald-50/50 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-emerald-600">{project.taskCount || 0}</p>
+                        <p className="text-xs text-slate-500">Tasks</p>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500 mb-2">
-                      {project.startDate && <p>Started: {project.startDate}</p>}
-                      {project.endDate && <p>Due: {project.endDate}</p>}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
+                      {project.startDate && <span>Started: {project.startDate}</span>}
+                      {project.endDate && <span>Due: {project.endDate}</span>}
                     </div>
                     {isManager && (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => handleEdit(project)} className="btn btn-secondary text-sm">Edit</button>
-                        <button onClick={() => handleDelete(project.id)} className="btn btn-danger text-sm">Delete</button>
+                      <div className="flex gap-2 pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => handleEdit(project)} className="btn btn-ghost text-xs px-3 py-1.5">Edit</button>
+                        <button onClick={() => handleDelete(project.id)} className="btn btn-ghost text-xs px-3 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50">Delete</button>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500 p-4">
-                No active projects found. {isManager ? 'Click "Add Project" to create one.' : ''}
+              <div className="empty-state py-8">
+                <p className="empty-state-text">No active projects found.</p>
+                {isManager && <p className="empty-state-action">Click "Add Project" to create one.</p>}
               </div>
             )}
           </div>
 
-          <div className="card border-2 border-gray-200">
-            <div className="bg-green-50 px-4 py-3 border-b">
-              <h2 className="text-lg font-semibold text-green-800">Completed Projects History</h2>
-              <p className="text-sm text-green-600">{completedProjects.length} completed project(s)</p>
-            </div>
-            {completedProjects.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+          {completedProjects.length > 0 && (
+            <div className="card overflow-hidden">
+              <div className="px-5 py-4 bg-slate-50/80 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-700">Completed Projects History</h2>
+                    <p className="text-xs text-slate-500">{completedProjects.length} completed project(s)</p>
+                  </div>
+                  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
                 {completedProjects.map((project) => (
-                  <div key={project.id} className="card bg-gray-50 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/projects/${project.id}`)}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg">{project.name}</h3>
-                        <span className="text-xs font-mono text-gray-400">{project.publicId}</span>
+                  <div key={project.id} className="card card-hover p-5 bg-slate-50/50" onClick={() => navigate(`/projects/${project.id}`)}>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-slate-700 truncate">{project.name}</h3>
+                        <span className="text-xs font-mono text-slate-400">{project.publicId}</span>
                       </div>
-                      <span className="badge badge-green">
-                        {getProjectStatusLabel(project.status)}
-                      </span>
+                      <span className="badge badge-gray shrink-0">Completed</span>
                     </div>
-                    <p className="text-gray-500 text-sm mb-4">{project.description || 'No description'}</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-                      <div className="bg-blue-50 p-2 rounded text-center">
-                        <p className="text-lg font-bold text-blue-600">{project.teamCount || 0}</p>
-                        <p className="text-xs text-gray-500">Teams</p>
+                    <p className="text-sm text-slate-500 mb-4 line-clamp-2">{project.description || 'No description'}</p>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="bg-slate-100 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-slate-600">{project.teamCount || 0}</p>
+                        <p className="text-xs text-slate-500">Teams</p>
                       </div>
-                      <div className="bg-green-50 p-2 rounded text-center">
-                        <p className="text-lg font-bold text-green-600">{project.taskCount || 0}</p>
-                        <p className="text-xs text-gray-500">Tasks</p>
+                      <div className="bg-slate-100 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-slate-600">{project.taskCount || 0}</p>
+                        <p className="text-xs text-slate-500">Tasks</p>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-500 mb-2">
-                      {project.startDate && <p>Started: {project.startDate}</p>}
-                      {project.endDate && <p>Due: {project.endDate}</p>}
                     </div>
                     {isManager && (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => handleEdit(project)} className="btn btn-secondary text-sm">Edit</button>
+                      <div className="pt-2 border-t border-slate-200" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => handleEdit(project)} className="btn btn-ghost text-xs px-3 py-1.5">Edit</button>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 p-4">
-                No completed projects yet.
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-4">{editingProject ? 'Edit' : 'Create'} Project</h3>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="text" placeholder="Project Name" className="input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-              <textarea placeholder="Description" className="input" rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-              <select className="input" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                {(editingProject ? PROJECT_STATUSES.EDIT : PROJECT_STATUSES.CREATE).map(status => (
-                  <option key={status} value={status}>{getProjectStatusLabel(status)}</option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-4">
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowModal(false); setError('') }}}>
+          <div className="modal-content max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">{editingProject ? 'Edit' : 'Create'} Project</h3>
+              <button onClick={() => { setShowModal(false); setError('') }} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {error && <div className="mx-6 mt-4 flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700"><svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>{error}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body space-y-4">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Start Date</label>
-                  <input type="date" className="input" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} max={formData.endDate || undefined} />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Project Name</label>
+                  <input type="text" placeholder="Enter project name" className="input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">End Date</label>
-                  <input type="date" className="input" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} min={formData.startDate || undefined} />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+                  <textarea placeholder="Enter description" className="input" rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
+                  <select className="input" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                    {(editingProject ? PROJECT_STATUSES.EDIT : PROJECT_STATUSES.CREATE).map(status => (
+                      <option key={status} value={status}>{getProjectStatusLabel(status)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date</label>
+                    <input type="date" className="input" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} max={formData.endDate || undefined} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date</label>
+                    <input type="date" className="input" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} min={formData.startDate || undefined} />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Saving...' : (editingProject ? 'Update' : 'Create')}</button>
+              <div className="modal-footer">
                 <button type="button" onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span className="flex items-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Saving...</span>
+                  ) : (editingProject ? 'Update Project' : 'Create Project')}
+                </button>
               </div>
             </form>
           </div>

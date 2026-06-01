@@ -25,10 +25,7 @@ export default function Checklists() {
   useEffect(() => { loadData() }, [])
 
   useEffect(() => {
-    if (!showModal && !showEditModal) {
-      setTeamUsers([])
-      return
-    }
+    if (!showModal && !showEditModal) { setTeamUsers([]); return }
     const formTeamId = formData.teamId
     const targetTeamId = formTeamId || userTeamId
     if (targetTeamId) {
@@ -36,9 +33,7 @@ export default function Checklists() {
         const filteredUsers = res.data.filter(u => u.id !== user?.id && u.role !== 'SUPER_ADMIN')
         setTeamUsers(filteredUsers)
       }).catch(() => setTeamUsers([]))
-    } else {
-      setTeamUsers([])
-    }
+    } else { setTeamUsers([]) }
   }, [formData.teamId, user?.id, userTeamId, showModal, showEditModal])
 
   const loadData = async () => {
@@ -72,9 +67,7 @@ export default function Checklists() {
       loadData()
     } catch (err) {
       setError(getErrorMessage(err))
-    } finally {
-      setSubmitting(false)
-    }
+    } finally { setSubmitting(false) }
   }
 
   const handleComplete = async (itemId, completed) => {
@@ -106,11 +99,7 @@ export default function Checklists() {
       description: checklist.description || '',
       shiftId: checklist.shiftId || '',
       teamId: checklist.teamId || '',
-      items: checklist.items?.map(item => ({
-        title: item.title,
-        description: item.description || '',
-        assignedToId: item.assignedToId || ''
-      })) || []
+      items: checklist.items?.map(item => ({ title: item.title, description: item.description || '', assignedToId: item.assignedToId || '' })) || []
     })
     setEditingChecklist(checklist)
     setShowEditModal(true)
@@ -121,11 +110,7 @@ export default function Checklists() {
     setError('')
     setSubmitting(true)
     try {
-      const data = {
-        ...formData,
-        shiftId: formData.shiftId || null,
-        teamId: isAdminOrManager ? (formData.teamId || null) : userTeamId
-      }
+      const data = { ...formData, shiftId: formData.shiftId || null, teamId: isAdminOrManager ? (formData.teamId || null) : userTeamId }
       await checklistService.update(editingChecklist.id, data)
       setShowEditModal(false)
       setEditingChecklist(null)
@@ -133,16 +118,13 @@ export default function Checklists() {
       loadData()
     } catch (err) {
       setError(getErrorMessage(err))
-    } finally {
-      setSubmitting(false)
-    }
+    } finally { setSubmitting(false) }
   }
 
   const addItem = () => {
     if (!newItem.title) return
     if (newItem.assignedToId && Number(newItem.assignedToId) === user?.id) {
-      setError('You cannot assign an item to yourself')
-      return
+      setError('You cannot assign an item to yourself'); return
     }
     setFormData({ ...formData, items: [...formData.items, { ...newItem, assignedToId: newItem.assignedToId || null }] })
     setNewItem({ title: '', description: '', assignedToId: '' })
@@ -157,9 +139,7 @@ export default function Checklists() {
 
   const resetForm = () => {
     const initial = { title: '', description: '', shiftId: '', teamId: '', items: [] }
-    if (!isAdminOrManager && userTeamId) {
-      initial.teamId = userTeamId
-    }
+    if (!isAdminOrManager && userTeamId) initial.teamId = userTeamId
     setFormData(initial)
     setNewItem({ title: '', description: '', assignedToId: '' })
   }
@@ -180,182 +160,195 @@ export default function Checklists() {
     const role = user.role
     const selfId = user.id
     const isStaffLevel = (r) => ['STAFF', 'DEVELOPER', 'TESTER'].includes(r)
-
     return teamUsers.filter(u => {
       if (u.id === selfId) return false
       if (role === 'SUPER_ADMIN') return true
-      if (role === 'MANAGER') {
-        return u.role !== 'SUPER_ADMIN' && u.role !== 'MANAGER'
-      }
-      if (role === 'TEAM_LEAD') {
-        return isStaffLevel(u.role)
-      }
-      if (isStaffLevel(role)) {
-        return isStaffLevel(u.role)
-      }
+      if (role === 'MANAGER') return u.role !== 'SUPER_ADMIN' && u.role !== 'MANAGER'
+      if (role === 'TEAM_LEAD') return isStaffLevel(u.role)
+      if (isStaffLevel(role)) return isStaffLevel(u.role)
       return false
     })
   }
 
   const filteredChecklists = checklists.filter(checklist => {
     if (isAdminOrManager) return true
-    if (isTeamLead || isStaff) {
-      return checklist.teamId === userTeamId
-    }
+    if (isTeamLead || isStaff) return checklist.teamId === userTeamId
     return false
   })
 
   const canEditChecklist = (checklist) => {
     if (isAdminOrManager) return true
-    if (isTeamLead) {
-      return checklist.teamId === userTeamId
-    }
-    if (isStaff) {
-      return checklist.createdById === user?.id
-    }
+    if (isTeamLead) return checklist.teamId === userTeamId
+    if (isStaff) return checklist.createdById === user?.id
     return false
   }
 
-  const getUserTeamName = () => {
-    const team = teams.find(t => t.id === userTeamId)
-    return team?.name || ''
-  }
+  const getUserTeamName = () => { const team = teams.find(t => t.id === userTeamId); return team?.name || '' }
+  const getUserTeamNameDisplay = () => getUserTeamName() || 'Your Team'
 
-  const getUserTeamNameDisplay = () => {
-    return getUserTeamName() || 'Your Team'
-  }
-
-  if (loading) return <div className="text-center py-8">Loading...</div>
+  if (loading) return <div className="text-center py-8"><div className="skeleton h-8 w-48 mx-auto mb-4" /><div className="space-y-4"><div className="skeleton h-32 w-full rounded-xl" /><div className="skeleton h-32 w-full rounded-xl" /></div></div>
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Checklists</h1>
-        {canCreate && <button onClick={() => { resetForm(); setShowModal(true); setError('') }} className="btn btn-primary">Create Checklist</button>}
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Checklists</h1>
+          <p className="text-sm text-slate-500 mt-1">Create and manage checklists</p>
+        </div>
+        {canCreate && (
+          <button onClick={() => { resetForm(); setShowModal(true); setError('') }} className="btn btn-primary">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Create Checklist
+          </button>
+        )}
       </div>
 
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
+      {error && <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700"><svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>{error}</div>}
 
       {filteredChecklists.length === 0 ? (
-        <div className="card text-center py-8">
-          <p className="text-gray-500">No checklists available for you.</p>
+        <div className="empty-state card py-12">
+          <svg className="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <p className="empty-state-text">No checklists available for you.</p>
         </div>
       ) : (
-      <div className="space-y-4">
-        {filteredChecklists.map((checklist) => {
-          const assignedUsers = [...new Set(checklist.items?.filter(i => i.assignedToName).map(i => i.assignedToName) || [])]
-          return (
-          <div key={checklist.id} className="card">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{checklist.title}</h3>
-                <p className="text-xs text-gray-400">Created by: {checklist.createdByName || 'Unknown'}</p>
-                {checklist.description && <p className="text-sm text-gray-500">{checklist.description}</p>}
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {checklist.shiftName && <span className="badge badge-blue">{checklist.shiftName}</span>}
-                  {checklist.teamName && <span className="badge badge-green">{checklist.teamName}</span>}
+        <div className="space-y-4">
+          {filteredChecklists.map((checklist) => {
+            const assignedUsers = [...new Set(checklist.items?.filter(i => i.assignedToName).map(i => i.assignedToName) || [])]
+            return (
+              <div key={checklist.id} className="card p-5 hover:shadow-soft-md transition-shadow">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-slate-900">{checklist.title}</h3>
+                      <span className="text-xs text-slate-400">by {checklist.createdByName || 'Unknown'}</span>
+                    </div>
+                    {checklist.description && <p className="text-sm text-slate-500 mt-1">{checklist.description}</p>}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {checklist.shiftName && <span className="badge badge-blue">{checklist.shiftName}</span>}
+                      {checklist.teamName && <span className="badge badge-green">{checklist.teamName}</span>}
+                    </div>
+                    {checklist.progressPercentage !== undefined && (
+                      <div className="mt-3 flex items-center gap-2 max-w-xs">
+                        <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div className="bg-emerald-500 rounded-full h-2 transition-all duration-500" style={{ width: `${checklist.progressPercentage}%` }} />
+                        </div>
+                        <span className="text-xs text-slate-500">{checklist.progressPercentage}%</span>
+                      </div>
+                    )}
+                    {assignedUsers.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {assignedUsers.map((name, idx) => (
+                          <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">{name}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {canEditChecklist(checklist) && (
+                      <button onClick={() => handleEdit(checklist)} className="btn btn-ghost text-xs px-2 py-1">Edit</button>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => handleDelete(checklist.id)} className="btn btn-ghost text-xs px-2 py-1 text-rose-600 hover:bg-rose-50">Delete</button>
+                    )}
+                  </div>
                 </div>
-                {checklist.progressPercentage !== undefined && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-xs">
-                      <div className="bg-green-500 rounded-full h-2" style={{ width: `${checklist.progressPercentage}%` }} />
+                <div className="space-y-1.5">
+                  {checklist.items?.map((item) => (
+                    <div key={item.id} className={`checklist-item ${item.completed ? 'completed' : ''}`}>
+                      <input type="checkbox" checked={item.completed} onChange={() => handleComplete(item.id, item.completed)}
+                        className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${item.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>{item.title}</p>
+                        {item.description && <p className="text-xs text-slate-400">{item.description}</p>}
+                      </div>
+                      {item.assignedToName && (
+                        <span className="badge badge-blue text-xs shrink-0">{item.assignedToName}</span>
+                      )}
                     </div>
-                    <span className="text-xs text-gray-500">{checklist.progressPercentage}%</span>
-                  </div>
-                )}
-                {assignedUsers.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {assignedUsers.map((name, idx) => (
-                      <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 ml-2 shrink-0">
-                {canEditChecklist(checklist) && (
-                  <button onClick={() => handleEdit(checklist)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
-                )}
-                {canDelete && <button onClick={() => handleDelete(checklist.id)} className="text-red-600 hover:text-red-800">Delete</button>}
-              </div>
-            </div>
-            <div className="space-y-2">
-              {checklist.items?.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3 flex-1">
-                    <input type="checkbox" checked={item.completed} onChange={() => handleComplete(item.id, item.completed)} className="w-4 h-4 shrink-0" />
-                    <div>
-                      <p className={`font-medium ${item.completed ? 'line-through text-gray-400' : ''}`}>{item.title}</p>
-                      {item.description && <p className="text-xs text-gray-400">{item.description}</p>}
-                    </div>
-                  </div>
-                  {item.assignedToName && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700 ml-2 shrink-0">
-                      {item.assignedToName}
-                    </span>
+                  ))}
+                  {(!checklist.items || checklist.items.length === 0) && (
+                    <p className="text-slate-400 text-xs text-center py-3">No items in this checklist</p>
                   )}
                 </div>
-              ))}
-              {(!checklist.items || checklist.items.length === 0) && (
-                <p className="text-gray-400 text-sm text-center py-2">No items in this checklist</p>
-              )}
-            </div>
-          </div>
-          )
-        })}
-      </div>
+              </div>
+            )
+          })}
+        </div>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Create Checklist</h3>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="text" placeholder="Title" className="input" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
-              <textarea placeholder="Description" className="input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-              <div className="grid grid-cols-2 gap-4">
-                <select className="input" value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}>
-                  <option value="">Select Shift</option>
-                  {shifts.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                {isAdminOrManager ? (
-                  <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
-                    <option value="">Select Team</option>
-                    {availableTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                ) : (
-                  <input type="text" className="input bg-gray-100" value={getUserTeamNameDisplay()} disabled title="Your Team" />
-                )}
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-2">Checklist Items</h4>
-                <div className="space-y-2 mb-3">
-                  {formData.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{item.title}</span>
-                        {item.assignedToId && <span className="badge badge-blue text-xs">{teamUsers.find(u => u.id === Number(item.assignedToId))?.firstName || ''}</span>}
-                      </div>
-                      <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm">Remove</button>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowModal(false); setError('') }}}>
+          <div className="modal-content max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">Create Checklist</h3>
+              <button onClick={() => { setShowModal(false); setError('') }} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {error && <div className="mx-6 mt-4 flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700"><svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>{error}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
+                  <input type="text" placeholder="Enter checklist title" className="input" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+                  <textarea placeholder="Enter description" className="input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Shift</label>
+                    <select className="input" value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}>
+                      <option value="">Select Shift</option>
+                      {shifts.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {isAdminOrManager ? (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Team</label>
+                      <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
+                        <option value="">Select Team</option>
+                        {availableTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
                     </div>
-                  ))}
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Team</label>
+                      <input type="text" className="input bg-slate-50 text-slate-600" value={getUserTeamNameDisplay()} disabled />
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <input type="text" placeholder="Item title" className="input" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} />
-                  <select className="input" value={newItem.assignedToId} onChange={(e) => setNewItem({ ...newItem, assignedToId: e.target.value })}>
-                    <option value="">Assign to</option>
-                    {getFilteredTeamUsers().map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
-                  </select>
+                <div className="border-t border-slate-200 pt-4">
+                  <h4 className="font-medium text-slate-900 mb-3">Checklist Items</h4>
+                  <div className="space-y-2 mb-3">
+                    {formData.items.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <span className="text-sm text-slate-700 truncate">{item.title}</span>
+                        </div>
+                        <button type="button" onClick={() => removeItem(idx)} className="text-rose-500 hover:text-rose-700 text-sm font-medium shrink-0">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" placeholder="Item title" className="input" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} />
+                    <select className="input" value={newItem.assignedToId} onChange={(e) => setNewItem({ ...newItem, assignedToId: e.target.value })}>
+                      <option value="">Assign to</option>
+                      {getFilteredTeamUsers().map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+                    </select>
+                  </div>
+                  <button type="button" onClick={addItem} className="btn btn-secondary w-full">Add Item</button>
                 </div>
-                <button type="button" onClick={addItem} className="btn btn-secondary w-full">Add Item</button>
               </div>
-
-              <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Creating...' : 'Create'}</button>
+              <div className="modal-footer">
                 <button type="button" onClick={() => { setShowModal(false); setError('') }} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span className="flex items-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Creating...</span>
+                  ) : 'Create Checklist'}
+                </button>
               </div>
             </form>
           </div>
@@ -363,54 +356,78 @@ export default function Checklists() {
       )}
 
       {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Edit Checklist</h3>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>}
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <input type="text" placeholder="Title" className="input" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
-              <textarea placeholder="Description" className="input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-              <div className="grid grid-cols-2 gap-4">
-                <select className="input" value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}>
-                  <option value="">Select Shift</option>
-                  {shifts.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                {isAdminOrManager ? (
-                  <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
-                    <option value="">Select Team</option>
-                    {availableTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                ) : (
-                  <input type="text" className="input bg-gray-100" value={getUserTeamNameDisplay()} disabled title="Your Team" />
-                )}
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-2">Checklist Items</h4>
-                <div className="space-y-2 mb-3">
-                  {formData.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{item.title}</span>
-                        {item.assignedToId && <span className="badge badge-blue text-xs">{teamUsers.find(u => u.id === Number(item.assignedToId))?.firstName || ''}</span>}
-                      </div>
-                      <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm">Remove</button>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowEditModal(false); setEditingChecklist(null); setError('') }}}>
+          <div className="modal-content max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">Edit Checklist</h3>
+              <button onClick={() => { setShowEditModal(false); setEditingChecklist(null); setError(''); resetForEdit(); setTeamUsers([]) }} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {error && <div className="mx-6 mt-4 flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700"><svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>{error}</div>}
+            <form onSubmit={handleUpdate}>
+              <div className="modal-body space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
+                  <input type="text" placeholder="Enter checklist title" className="input" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+                  <textarea placeholder="Enter description" className="input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Shift</label>
+                    <select className="input" value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}>
+                      <option value="">Select Shift</option>
+                      {shifts.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {isAdminOrManager ? (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Team</label>
+                      <select className="input" value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}>
+                        <option value="">Select Team</option>
+                        {availableTeams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
                     </div>
-                  ))}
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Team</label>
+                      <input type="text" className="input bg-slate-50 text-slate-600" value={getUserTeamNameDisplay()} disabled />
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <input type="text" placeholder="Item title" className="input" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} />
-                  <select className="input" value={newItem.assignedToId} onChange={(e) => setNewItem({ ...newItem, assignedToId: e.target.value })}>
-                    <option value="">Assign to</option>
-                    {getFilteredTeamUsers().map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
-                  </select>
+                <div className="border-t border-slate-200 pt-4">
+                  <h4 className="font-medium text-slate-900 mb-3">Checklist Items</h4>
+                  <div className="space-y-2 mb-3">
+                    {formData.items.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          <span className="text-sm text-slate-700 truncate">{item.title}</span>
+                        </div>
+                        <button type="button" onClick={() => removeItem(idx)} className="text-rose-500 hover:text-rose-700 text-sm font-medium shrink-0">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" placeholder="Item title" className="input" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} />
+                    <select className="input" value={newItem.assignedToId} onChange={(e) => setNewItem({ ...newItem, assignedToId: e.target.value })}>
+                      <option value="">Assign to</option>
+                      {getFilteredTeamUsers().map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.role})</option>)}
+                    </select>
+                  </div>
+                  <button type="button" onClick={addItem} className="btn btn-secondary w-full">Add Item</button>
                 </div>
-                <button type="button" onClick={addItem} className="btn btn-secondary w-full">Add Item</button>
               </div>
-
-              <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1" disabled={submitting}>{submitting ? 'Updating...' : 'Update'}</button>
+              <div className="modal-footer">
                 <button type="button" onClick={() => { setShowEditModal(false); setEditingChecklist(null); setError(''); resetForEdit(); setTeamUsers([]) }} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span className="flex items-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Updating...</span>
+                  ) : 'Update Checklist'}
+                </button>
               </div>
             </form>
           </div>
